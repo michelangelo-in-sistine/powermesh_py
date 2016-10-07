@@ -2,7 +2,7 @@
 # -*- coding: cp936 -*-
 
 POWERMESH_INNER_DATA_TYPE = list
-
+#test
 def asc_hex_to_dec_list(asc_hex_str):
     assert (len(asc_hex_str) % 2 == 0), 'input length error: %s' % (asc_hex_str,)
     temp = [int(asc_hex_str[i:i+2],16) for i in xrange(len(asc_hex_str)) if i % 2 == 0]
