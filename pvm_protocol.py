@@ -5,14 +5,17 @@ import powermesh_rscodec
 
 POWERMESH_INNER_DATA_TYPE = list
 #test
+
 def asc_hex_to_dec_list(asc_hex_str):
     assert (len(asc_hex_str) % 2 == 0), 'input length error: %s' % (asc_hex_str,)
     temp = [int(asc_hex_str[i:i+2],16) for i in xrange(len(asc_hex_str)) if i % 2 == 0]
     return POWERMESH_INNER_DATA_TYPE(temp)
 
+
 def dec_list_to_asc_hex(dec_list, seperator = ''):
     temp = ['%02X' % n for n in dec_list]
     return seperator.join(temp)
+
 
 def crc16(data):
     '''
@@ -33,6 +36,7 @@ def crc16(data):
     crc ^= 0xFFFF
 
     return POWERMESH_INNER_DATA_TYPE([crc>>8, crc%256])
+
 
 def response_mode(dlct,scan):
     rmode = (dlct % 64) >> 2
@@ -80,6 +84,7 @@ def response_mode(dlct,scan):
             type = 'ERROR DISP Mode!!'
     return type
 
+
 def check_bit(value, bit):
     # 判断value的第bit位是否为1
     if value & 0x01<<bit:
@@ -90,6 +95,9 @@ def check_bit(value, bit):
 class PowerMesh():
     '''A powermesh frame object
     '''
+    FIRM_VER = 1
+    LEN_PPCI = 5
+    MAX_PHY_LEN = 300
 
     def __init__(self, phy_data='', encode='asc_hex'):
         '''establish a powermesh obj by a frame of receiving phy data or nothing('', for generate a phy frame)
@@ -152,9 +160,9 @@ class PowerMesh():
             disturb = (phy_data[9] - cs) % 256
             first_byte = phy_data[0]
             
-            if(crc16(phy_data[:-1]+[phy_data[-1]^disturb]) != [0xE2, 0xF0]):
+            if crc16(phy_data[:-1]+[phy_data[-1]^disturb]) != [0xE2, 0xF0]:
                 phy_data = powermesh_rscodec.rsdecode_vec(phy_data)
-                if(crc16(phy_data[:-1]+[phy_data[-1]^disturb]) == [0xE2, 0xF0]):
+                if crc16(phy_data[:-1]+[phy_data[-1]^disturb]) == [0xE2, 0xF0]:
                     datarate = 0
                     print(u"RS解码后校验通过! BPSK类型, 扰码0x%02X" % disturb)
                 else:
@@ -208,10 +216,10 @@ class PowerMesh():
             dlct = phy_data[9]
             
             if check_bit(dlct, 7):
-                if((dlct % 64)>>2 == 15):
+                if (dlct % 64)>>2 == 15:
                     print(u'DLL协议:扩展DLL协议(EDP)')
                     lsdu = phy_data[16:-2]
-                    if(lsdu[0] >> 6 == 1):
+                    if lsdu[0] >> 6 == 1:
                         print(u'协议:EBC\n帧类型')
                         if lsdu[0] % 4 == 0:
                             print(u'EBC广播帧(NBF)')
@@ -241,7 +249,7 @@ class PowerMesh():
                         
                 else:
                     print(u'Diag类型')
-                    if(not check_bit(dlct, 6)):
+                    if not check_bit(dlct, 6):
                         print(u'下行')
                         print(u'要求返回类型:0x%s' % response_mode(dlct,scan))
                     else:
@@ -252,9 +260,9 @@ class PowerMesh():
                     return
             else:
                 print(u'普通类型')
-                if(not check_bit(dlct, 6)):
+                if not check_bit(dlct, 6):
                     print(u'下行')
-                    if(check_bit(dlct, 5)):
+                    if check_bit(dlct, 5):
                         print(u'要求响应')
                     else:
                         print(u'不要求响应')
@@ -338,7 +346,7 @@ class PowerMesh():
                     if check_bit(forward,5):        #check network_id_ena
                         print(u'网络约束,转发携带网络ID:0x%02X' % lsdu[4])
                     
-                    if (forward % 8):
+                    if forward % 8:
                         print(u'第%d跳,转发窗口数:%d,所在窗口序列号:%d' % int(jumps/16) - mod(jumps % 16), 2**(forward % 8), lsdu[5])
                     
                     if check_bit(forward,3):
@@ -346,14 +354,14 @@ class PowerMesh():
                     
                     print(u'NSDU(%d bytes):%s' % (len(lsdu[6:]), dec_list_to_asc_hex(lsdu[6:])))
                     
-                elif floor(lsdu[0]/2^4)==15:
+                elif (lsdu[0] >> 4)==15:
                     print(u'网络层协议:PTP')
                     print(u'NSDU(%d bytes):%s' % (len(lsdu[1:]), dec_list_to_asc_hex(lsdu[1:])))
                 else:
                     print(u'无法识别的网络层协议')
                 
-            
-    def gen_phy_frame(psdu, xmode, scan = False, srf = False):
+    @staticmethod
+    def phy_gen(psdu, xmode, scan = False, srf = False):
         ''' 生成phy帧
         xmode: 高4位表频率, 低2位表速率
                 0x1X: CH0   0xX0: BPSK
@@ -361,12 +369,41 @@ class PowerMesh():
                 0x4X: CH2   0xX2: DS63
                 0x8X: CH3
                 0xFX: SALVO
+        if scan is True, the ch indication in PHPR is
         '''
-        assert (xmode>>4 != 0), "error xmode 0x%02X" % xmode
-        
-        phpr = 0x01;            #FIRM_VER = 0x01
-        phpr = (xmode>>4)-1
+
+        assert (xmode & 0xF0 in (0x10, 0x20, 0x40, 0x80, 0xF0) and xmode % 4 in (0x00, 0x01, 0x02)), "error xmode 0x%02X" % xmode
+        phy_len = len(psdu) + PowerMesh.LEN_PPCI
+        assert phy_len <= PowerMesh.MAX_PHY_LEN, "error phy len %d" % phy_len
+
+        phpr = PowerMesh.FIRM_VER \
+                + (0x04 if srf else 0) \
+                + (0x08 if scan else 0) \
+                + ({0x10:0,0x20:1,0x40:2,0x80:3,0xF0:4}[xmode & 0xF0] << 4) \
+                + (0x80 if phy_len > 255 else 0)
+
+        if not srf:
+            sec_len = phy_len % 256
+            cs = -(phpr + sec_len + sum(psdu[0:7])) % 256
+
+            ppdu = [phpr] + [phy_len] + [cs] + psdu
+            ppdu += crc16(ppdu)
+        else:
+            cs = -(phpr + sum(psdu[0:2])) % 256
+            ppdu = [phpr] + psdu[0:2] + [cs]
+
+        return POWERMESH_INNER_DATA_TYPE(ppdu)
+
+    @staticmethod
+    def dll_gen(lsdu, src_uid, target_uid, prop):
+        ''' 生成dll帧
+        lsdu: ...
+        src_uid: 12 bytes asc_hex string
+        target_uid: 12 bytes asc_hex string
+        prop:
+        '''
         pass
+
     def gen_dll_frame(lsdu):
         pass
     def gen_nw_frame(nsdu):
@@ -376,22 +413,30 @@ class PowerMesh():
 
 if __name__ == '__main__':
     import time
-    print list(crc16(POWERMESH_INNER_DATA_TYPE([173,   101,    94,   252,     9,   226,   233,   203,    25,    67,    85,   174,    34,   184,    27])))
-    print asc_hex_to_dec_list('12345678')
+    # print list(crc16(POWERMESH_INNER_DATA_TYPE([173,   101,    94,   252,     9,   226,   233,   203,    25,    67,    85,   174,    34,   184,    27])))
+    # print asc_hex_to_dec_list('12345678')
 
     p = PowerMesh()
 #    p.parse('3D79E664')
-#    p.parse('091724000000000000BC17BCF5CA2B36582F436A4307622934027075215343939A6BF153D516DD5EC7739E9BDC0B703970F53E16E7')
-#    p.parse('313E88430762293400005E1D0A05857C60332A0011250E68210113091000689118343439389C83363333333333C6BC343333333333A99334334C16006162')
+#     p.parse('091724000000000000BC17BCF5CA2B36582F436A4307622934027075215343939A6BF153D516DD5EC7739E9BDC0B703970F53E16E7')
+    # p.parse('313E88430762293400005E1D0A05857C60332A0011250E68210113091000689118343439389C83363333333333C6BC343333333333A99334334C16006162')
 #    p.parse('0912055E1D0A077584B09ACCA0BB52331E907E814307612234026C25F0B2DA3045CE69628D9B')
     
-    p.parse('3917F4000000000000BCB079B27FA54415867A01430762293402707521190DA72B2F174C0554A505C7710F6AC78615C29E9931705B')
-    p.parse('3D78C388')
-    p.parse('091526000000000000BCE3376AFDB8CDE890DF1D43076229340271781FFE52ACA04BA104E412E3484975A491B1BA8E698EC810')
-    p.parse('3915AB430762293402FC5E1D0A04878242781F4898')
-    p.parse('19158B5E1D0A048082BCD13DE35FCB55EC554A30430762293402437439C59745B85C9922C32F509A4975A491B1BA8E698EC810')
-    
-    
+    # p.parse('3917F4000000000000BCB079B27FA54415867A01430762293402707521190DA72B2F174C0554A505C7710F6AC78615C29E9931705B')
+    # p.parse('3D78C388')
+    # p.parse('091526000000000000BCE3376AFDB8CDE890DF1D43076229340271781FFE52ACA04BA104E412E3484975A491B1BA8E698EC810')
+    # p.parse('3915AB430762293402FC5E1D0A04878242781F4898')
+    # p.parse('19158B5E1D0A048082BCD13DE35FCB55EC554A30430762293402437439C59745B85C9922C32F509A4975A491B1BA8E698EC810')
+
+    text = '3915AB430762293402FC5E1D0A04878242781F4898'
+    print text
+
+    a = asc_hex_to_dec_list(text)
+    #a = powermesh_rscodec.rsdecode_vec(a)
+    a = dec_list_to_asc_hex(p.phy_gen(a[3:-2], 0x81, scan = 1, srf = 1))
+    print a
+    p.parse(a)
+
     print "\n-------\nTHE END"
     time.sleep(0.1)
     pass
