@@ -2,19 +2,7 @@
 # -*- coding: cp936 -*-
 
 import powermesh_rscodec
-
-POWERMESH_INNER_DATA_TYPE = list
-#test
-
-def asc_hex_to_dec_list(asc_hex_str):
-    assert (len(asc_hex_str) % 2 == 0), 'input length error: %s' % (asc_hex_str,)
-    temp = [int(asc_hex_str[i:i+2],16) for i in xrange(len(asc_hex_str)) if i % 2 == 0]
-    return POWERMESH_INNER_DATA_TYPE(temp)
-
-
-def dec_list_to_asc_hex(dec_list, seperator = ''):
-    temp = ['%02X' % n for n in dec_list]
-    return seperator.join(temp)
+from pvm_util import *
 
 
 def crc16(data):
@@ -100,13 +88,13 @@ class PowerMesh():
     MAX_PHY_LEN = 300
 
     def __init__(self, phy_data='', encode='asc_hex'):
-        '''establish a powermesh obj by a frame of receiving phy data or nothing('', for generate a phy frame)
+        '''establish a powermesh obj by a frame of rcv_loop phy data or nothing('', for generate a phy frame)
         :param phy_data: received phy frame, usually consisted of asc hex string
         :param encode: format of phy_data, default 'asc_hex', other option: 'str', 'dec_list'
         :return:
         '''
         if phy_data != '' and encode == 'asc_hex':
-            self.data = POWERMESH_INNER_DATA_TYPE(asc_hex_to_dec_list(phy_data))
+            self.data = POWERMESH_INNER_DATA_TYPE(asc_hex_str_to_dec_array(phy_data))
 
         pass
 
@@ -114,7 +102,7 @@ class PowerMesh():
     def parse(phy_data, encode='asc_hex'):
         # 设计成静态方法, 以便直接调用
         if phy_data != '' and encode == 'asc_hex':
-            phy_data = POWERMESH_INNER_DATA_TYPE(asc_hex_to_dec_list(phy_data))
+            phy_data = POWERMESH_INNER_DATA_TYPE(asc_hex_str_to_dec_array(phy_data))
             
         if len(phy_data) < 4:
             print u'错误的数据包长度, 应至少4字节'
@@ -227,7 +215,7 @@ class PowerMesh():
                             print(u'广播ID:0x%02X' % (lsdu[1]>>4))
                             print(u'窗口数:%d' % 2**(lsdu[1]%16))
                             print(u'响应MASK:%8s (X X BUILD_ID METER_ID UID SNR SS AC_PHASE)' % bin(lsdu[2])[2:])
-                            print(u'响应条件: %s' % dec_list_to_asc_hex(lsdu[3:], ' '))
+                            print(u'响应条件: %s' % dec_array_to_asc_hex_str(lsdu[3:], ' '))
                         elif lsdu[0] % 4 == 1:
                             print(u'EBC随机ID查询帧(NIF)')
                             print(u'要求返回类型:0x%s' % response_mode(lsdu[0],scan))
@@ -294,7 +282,7 @@ class PowerMesh():
                     
                     if check_bit(lsdu[2],2):
                         print(u'Error Feedback')
-                        print(u'Error Uid:%s' % dec_list_to_asc_hex(lsdu[3:9]))
+                        print(u'Error Uid:%s' % dec_array_to_asc_hex_str(lsdu[3:9]))
                         print(u'Error Code:0x%02X:' % lsdu[9])
                         if lsdu[9] == 0:
                             print(u'No Error.')
@@ -316,7 +304,7 @@ class PowerMesh():
                         print(u'Packet Type: Patrol Package')
                     else:
                         print(u'Packet Type: Transmit Package')
-                    print(u'NSDU(%d bytes:%s' % (len(lsdu[3:]), dec_list_to_asc_hex(lsdu[3:])))
+                    print(u'NSDU(%d bytes:%s' % (len(lsdu[3:]), dec_array_to_asc_hex_str(lsdu[3:])))
                     
                 elif lsdu[0] >> 4 == 1:
                     print(u'网络层协议:DST')
@@ -352,11 +340,11 @@ class PowerMesh():
                     if check_bit(forward,3):
                         print(u'转发窗口递减使能')
                     
-                    print(u'NSDU(%d bytes):%s' % (len(lsdu[6:]), dec_list_to_asc_hex(lsdu[6:])))
+                    print(u'NSDU(%d bytes):%s' % (len(lsdu[6:]), dec_array_to_asc_hex_str(lsdu[6:])))
                     
                 elif (lsdu[0] >> 4)==15:
                     print(u'网络层协议:PTP')
-                    print(u'NSDU(%d bytes):%s' % (len(lsdu[1:]), dec_list_to_asc_hex(lsdu[1:])))
+                    print(u'NSDU(%d bytes):%s' % (len(lsdu[1:]), dec_array_to_asc_hex_str(lsdu[1:])))
                 else:
                     print(u'无法识别的网络层协议')
                 
@@ -414,7 +402,7 @@ class PowerMesh():
 if __name__ == '__main__':
     import time
     # print list(crc16(POWERMESH_INNER_DATA_TYPE([173,   101,    94,   252,     9,   226,   233,   203,    25,    67,    85,   174,    34,   184,    27])))
-    # print asc_hex_to_dec_list('12345678')
+    # print asc_hex_str_to_dec_array('12345678')
 
     p = PowerMesh()
 #    p.parse('3D79E664')
@@ -431,9 +419,9 @@ if __name__ == '__main__':
     text = '3915AB430762293402FC5E1D0A04878242781F4898'
     print text
 
-    a = asc_hex_to_dec_list(text)
+    a = asc_hex_str_to_dec_array(text)
     #a = powermesh_rscodec.rsdecode_vec(a)
-    a = dec_list_to_asc_hex(p.phy_gen(a[3:-2], 0x81, scan = 1, srf = 1))
+    a = dec_array_to_asc_hex_str(p.phy_gen(a[3:-2], 0x81, scan = 1, srf = 1))
     print a
     p.parse(a)
 
