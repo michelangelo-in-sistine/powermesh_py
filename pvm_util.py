@@ -2,7 +2,7 @@
 # -*- coding: cp936 -*-
 
 POWERMESH_INNER_DATA_TYPE = list                  # in release version, inner data type should be bytearray
-PRINT_DEBUG_INFO = True
+PRINT_DEBUG_INFO = False
 
 def asc_hex_str_to_dec_array(asc_hex_str):
     assert (len(asc_hex_str) % 2 == 0), 'input length error: %s' % (asc_hex_str,)
