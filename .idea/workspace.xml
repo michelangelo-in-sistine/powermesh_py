@@ -30,7 +30,7 @@
       <file leaf-file-name="pvm_protocol.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pvm_protocol.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="418" column="33" selection-start="15927" selection-end="15927" vertical-scroll-proportion="0.0" vertical-offset="7731" max-vertical-offset="8284">
+            <state line="418" column="33" selection-start="15927" selection-end="15927" vertical-scroll-proportion="-8.56" vertical-offset="7709" max-vertical-offset="8265">
               <folding />
             </state>
           </provider>
@@ -39,8 +39,10 @@
       <file leaf-file-name="pvm_interface.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pvm_interface.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="89" column="33" selection-start="2469" selection-end="2469" vertical-scroll-proportion="0.0" vertical-offset="1691" max-vertical-offset="2242">
-              <folding />
+            <state line="93" column="28" selection-start="2687" selection-end="2699" vertical-scroll-proportion="-6.2413793" vertical-offset="1586" max-vertical-offset="2299">
+              <folding>
+                <element signature="e#95#137#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -48,7 +50,7 @@
       <file leaf-file-name="pvm_interface_test.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pvm_interface_test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="12" column="4" selection-start="189" selection-end="194" vertical-scroll-proportion="0.26511627" vertical-offset="0" max-vertical-offset="860">
+            <state line="28" column="17" selection-start="630" selection-end="630" vertical-scroll-proportion="0.75979555" vertical-offset="86" max-vertical-offset="703">
               <folding>
                 <element signature="e#95#115#0" expanded="true" />
               </folding>
@@ -56,64 +58,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="__builtin__.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/.PyCharm30/system/python_stubs/-762174762/__builtin__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="4186" column="8" selection-start="143454" selection-end="143454" vertical-scroll-proportion="0.0" vertical-offset="79344" max-vertical-offset="96881">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="serialwin32.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://C:/Python27/Lib/site-packages/serial/serialwin32.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="83" column="0" selection-start="3180" selection-end="3180" vertical-scroll-proportion="0.0" vertical-offset="1577" max-vertical-offset="7866">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="serialutil.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://C:/Python27/Lib/site-packages/serial/serialutil.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="260" column="0" selection-start="9655" selection-end="9655" vertical-scroll-proportion="0.0" vertical-offset="4765" max-vertical-offset="10127">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="abc.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://C:/Python27/Lib/abc.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="132" column="0" selection-start="4968" selection-end="4968" vertical-scroll-proportion="0.0" vertical-offset="2508" max-vertical-offset="3629">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="_weakrefset.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://C:/Python27/Lib/_weakrefset.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="83" column="0" selection-start="2311" selection-end="2311" vertical-scroll-proportion="0.0" vertical-offset="1389" max-vertical-offset="3838">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="__init__.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://C:/Python27/Lib/site-packages/serial/__init__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="67" column="59" selection-start="2429" selection-end="2429" vertical-scroll-proportion="0.0" vertical-offset="569" max-vertical-offset="1615">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="pvm_util.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pvm_util.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="4" column="24" selection-start="182" selection-end="182" vertical-scroll-proportion="0.0" vertical-offset="76" max-vertical-offset="475">
+            <state line="16" column="4" selection-start="576" selection-end="576" vertical-scroll-proportion="0.0" vertical-offset="304" max-vertical-offset="494">
               <folding />
             </state>
           </provider>
@@ -142,8 +90,8 @@
         <option value="$PROJECT_DIR$/interface.py" />
         <option value="$PROJECT_DIR$/pvm_protocol.py" />
         <option value="$PROJECT_DIR$/pvm_util.py" />
-        <option value="$PROJECT_DIR$/pvm_interface_test.py" />
         <option value="$PROJECT_DIR$/pvm_interface.py" />
+        <option value="$PROJECT_DIR$/pvm_interface_test.py" />
       </list>
     </option>
   </component>
@@ -186,7 +134,7 @@
     <option name="STATE" value="0" />
   </component>
   <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1" splitterProportion="0.5">
+    <navigator proportions="" version="1" splitterProportion="0.5">
       <flattenPackages />
       <showMembers />
       <showModules />
@@ -197,36 +145,14 @@
       <autoscrollFromSource />
       <sortByType />
     </navigator>
-    <panes>
-      <pane id="Scope" />
-      <pane id="ProjectPane">
-        <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="powermesh_py" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="powermesh_py" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="pvmesh" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-    </panes>
+    <panes />
   </component>
   <component name="PropertiesComponent">
     <property name="full.screen.before.presentation.mode" value="false" />
     <property name="options.splitter.main.proportions" value="0.3" />
     <property name="recentsLimit" value="5" />
-    <property name="options.lastSelected" value="PyConsoleConfigurable.Python Console" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/pvm_protocol.py" />
+    <property name="options.lastSelected" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="last_opened_file_path" value="C:/Python27" />
     <property name="FullScreen" value="false" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
@@ -315,9 +241,9 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
+      <option name="SDK_HOME" value="C:/Python27/python.exe" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="powermesh_py" />
@@ -521,10 +447,10 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32884398" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.13679746" sideWeight="0.6896942" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32996634" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" x="5" y="611" width="1886" height="330" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.30639732" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" x="5" y="611" width="1886" height="330" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32979852" sideWeight="0.6896942" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32677597" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.60665256" sideWeight="0.6700337" order="3" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32659933" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.47888067" sideWeight="0.6936027" order="3" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32893288" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -575,32 +501,79 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="python-line">
-          <url>file://$PROJECT_DIR$/pvm_interface_test.py</url>
-          <line>15</line>
-          <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="python-line">
-          <url>file://$PROJECT_DIR$/pvm_interface_test.py</url>
-          <line>10</line>
-          <option name="timeStamp" value="13" />
-        </line-breakpoint>
-      </breakpoints>
-      <option name="time" value="14" />
+      <option name="time" value="15" />
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://C:/Python27/Lib/_weakrefset.py">
+    <entry file="file://$PROJECT_DIR$/pvm_interface_test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="83" column="0" selection-start="2311" selection-end="2311" vertical-scroll-proportion="0.0" vertical-offset="1389" max-vertical-offset="3838">
+        <state line="19" column="25" selection-start="421" selection-end="421" vertical-scroll-proportion="0.0" vertical-offset="361" max-vertical-offset="646">
+          <folding>
+            <element signature="e#95#115#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_util.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="16" column="4" selection-start="576" selection-end="576" vertical-scroll-proportion="0.0" vertical-offset="304" max-vertical-offset="494">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://C:/Python27/Lib/site-packages/serial/__init__.py">
+    <entry file="file://$PROJECT_DIR$/pvm_interface.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="67" column="59" selection-start="2429" selection-end="2429" vertical-scroll-proportion="0.0" vertical-offset="569" max-vertical-offset="1615">
+        <state line="37" column="32" selection-start="939" selection-end="939" vertical-scroll-proportion="0.0" vertical-offset="703" max-vertical-offset="2242">
+          <folding>
+            <element signature="e#95#137#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_interface_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="20" column="21" selection-start="431" selection-end="431" vertical-scroll-proportion="0.0" vertical-offset="380" max-vertical-offset="589">
+          <folding>
+            <element signature="e#95#115#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_util.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="16" column="4" selection-start="576" selection-end="576" vertical-scroll-proportion="0.0" vertical-offset="304" max-vertical-offset="494">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_protocol.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="418" column="33" selection-start="15927" selection-end="15927" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="8284">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_interface.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="20" column="0" selection-start="368" selection-end="368" vertical-scroll-proportion="0.0" vertical-offset="380" max-vertical-offset="2128">
+          <folding>
+            <element signature="e#95#137#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_interface_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="24" column="17" selection-start="498" selection-end="498" vertical-scroll-proportion="0.0" vertical-offset="456" max-vertical-offset="627">
+          <folding>
+            <element signature="e#95#115#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_util.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="4" column="24" selection-start="182" selection-end="182" vertical-scroll-proportion="0.0" vertical-offset="76" max-vertical-offset="475">
           <folding />
         </state>
       </provider>
@@ -622,77 +595,32 @@
         <state line="31" column="0" selection-start="789" selection-end="789" vertical-scroll-proportion="0.6913146" vertical-offset="0" max-vertical-offset="852" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/interface.py">
+    <entry file="file://$PROJECT_DIR$/pvm_util.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="3" column="0" selection-start="50" selection-end="50" vertical-scroll-proportion="0.06627907" vertical-offset="0" max-vertical-offset="860" />
-      </provider>
-    </entry>
-    <entry file="file://C:/Python27/Lib/site-packages/serial/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="67" column="59" selection-start="2429" selection-end="2429" vertical-scroll-proportion="0.0" vertical-offset="569" max-vertical-offset="1615">
+        <state line="16" column="4" selection-start="576" selection-end="576" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="494">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pvm_protocol.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="418" column="33" selection-start="15927" selection-end="15927" vertical-scroll-proportion="0.0" vertical-offset="7731" max-vertical-offset="8284">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Python27/Lib/_weakrefset.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="83" column="0" selection-start="2311" selection-end="2311" vertical-scroll-proportion="0.0" vertical-offset="1389" max-vertical-offset="3838">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Python27/Lib/site-packages/serial/serialutil.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="260" column="0" selection-start="9655" selection-end="9655" vertical-scroll-proportion="0.0" vertical-offset="4765" max-vertical-offset="10127">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Python27/Lib/abc.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="132" column="0" selection-start="4968" selection-end="4968" vertical-scroll-proportion="0.0" vertical-offset="2290" max-vertical-offset="3591">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Python27/Lib/site-packages/serial/serialwin32.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="83" column="0" selection-start="3180" selection-end="3180" vertical-scroll-proportion="0.0" vertical-offset="1345" max-vertical-offset="7809">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.PyCharm30/system/python_stubs/-762174762/__builtin__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="4186" column="8" selection-start="143454" selection-end="143454" vertical-scroll-proportion="0.0" vertical-offset="79344" max-vertical-offset="96881">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_util.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="4" column="24" selection-start="182" selection-end="182" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="475">
+        <state line="418" column="33" selection-start="15927" selection-end="15927" vertical-scroll-proportion="-8.56" vertical-offset="7709" max-vertical-offset="8265">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pvm_interface.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="89" column="33" selection-start="2469" selection-end="2469" vertical-scroll-proportion="0.0" vertical-offset="1152" max-vertical-offset="2128">
-          <folding />
+        <state line="93" column="28" selection-start="2687" selection-end="2699" vertical-scroll-proportion="-6.2413793" vertical-offset="1586" max-vertical-offset="2299">
+          <folding>
+            <element signature="e#95#137#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pvm_interface_test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="12" column="4" selection-start="189" selection-end="194" vertical-scroll-proportion="0.26511627" vertical-offset="0" max-vertical-offset="860">
+        <state line="28" column="17" selection-start="630" selection-end="630" vertical-scroll-proportion="0.75979555" vertical-offset="86" max-vertical-offset="703">
           <folding>
             <element signature="e#95#115#0" expanded="true" />
           </folding>

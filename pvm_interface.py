@@ -70,6 +70,7 @@ class Interface(Serial):
         ## 监视CV返回文本的独立线程
         ## 有符合CV通信协议的数据则将其放入Queue中
 
+        rcv_data = ''
         rcv_bytes = 0
         while self.rcv_loop_thread_on:
             try:
@@ -77,17 +78,18 @@ class Interface(Serial):
                     rcv_bytes = self.inWaiting()        # receving status
                 else:
                     if rcv_bytes:
-                        rcv_data = self.read(rcv_bytes) # 整包取出并状态清零
+                        rcv_data += self.read(rcv_bytes) # 整包取出并状态清零
                         rcv_bytes = 0
-
-                        debug_output(rcv_data)
 
                         # 获得有效的接收并将其放入Queue中
                         match_rslt = re.findall(r'<(\w+)>',rcv_data)
                         if match_rslt:
                             for item in match_rslt:
                                 self.queue.put(item)
-                time.sleep(0.0005)
+                            index = rcv_data.rfind(match_rslt[-1]) + len(match_rslt[-1]) + 1    #
+                            rcv_data = rcv_data[index:]
+                #time.sleep(0.0005)
+                time.sleep(0.001)
             except SerialException:
                 debug_output('Comm Object is Cleared')
                 self.rcv_loop_thread_on = False
