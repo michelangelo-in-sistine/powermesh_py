@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="76f245ab-d6d0-4d7a-b672-cf4f9cb01dfc" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pvm_interface.py" afterPath="$PROJECT_DIR$/pvm_interface.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pvm_util.py" afterPath="$PROJECT_DIR$/pvm_util.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/doc/PVMesh CV主控机的Python程序架构设计.docx" afterPath="$PROJECT_DIR$/doc/PVMesh CV主控机的Python程序架构设计.docx" />
     </list>
     <ignored path="powermesh_py.iws" />
     <ignored path=".idea/workspace.xml" />
