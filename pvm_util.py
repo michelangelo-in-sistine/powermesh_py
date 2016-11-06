@@ -17,4 +17,3 @@ def dec_array_to_asc_hex_str(dec_list, seperator = ''):
 def debug_output(s):
     if PRINT_DEBUG_INFO:
         print(s)
-
