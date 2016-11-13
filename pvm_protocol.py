@@ -5,27 +5,6 @@ import powermesh_rscodec
 from pvm_util import *
 
 
-def crc16(data):
-    '''
-    :param data: input dec list
-    :return:dec list for calce
-    '''
-    assert(type(data)==POWERMESH_INNER_DATA_TYPE), 'input data must be a %s' % (POWERMESH_INNER_DATA_TYPE,)
-
-    crc = 0xFFFF
-    for newbyte in data:
-        for j in xrange(8):
-            crcbit = 1 if (crc & 0x8000) else 0
-            databit = 1 if (newbyte & 0x80) else 0
-            crc = (crc<<1) % 0x10000
-            if(crcbit != databit):
-                crc ^= 0x1021
-            newbyte = (newbyte<<1) % 0x100
-    crc ^= 0xFFFF
-
-    return POWERMESH_INNER_DATA_TYPE([crc>>8, crc%256])
-
-
 def response_mode(dlct,scan):
     rmode = (dlct % 64) >> 2
     if scan:

@@ -8,19 +8,49 @@ from serial import Serial, SerialException
 from threading import Thread
 import time
 from pvm_util import *
-from Queue import Queue
+from pvm_powermesh import *
+from Queue import Queue, Empty
 import re
-import pvm_protocol
+import sys
 
+class PvmFatalException(Exception):
+    pass
 
-class Interface(object):
+class PvmException(Exception):
+    """ all exceptions when raised means small mistake
+        e.g. the current node transaction should be broken or retry
+        but the next node should start
+    """
+    EXCEPT_CODE_CMD_ERR = 0x81              # CV表示不支持此命令0
+    EXCEPT_CODE_FORMAT_ERR = 0x82           # CV表示下行帧命令格式错误
+    EXCEPT_CODE_DIAG_FAIL = 0x83            # Diag Time Out
+    EXCEPT_CODE_RETURN_FROMAT_ERR = 0x84    # CV返回的数据帧格式错误, 包括CRC错误
+    EXCEPT_CODE_TIME_OUT = 0x85             # 超时
+
+    def __init__(self, except_code, msg = ''):
+        Exception.__init__(self,msg)
+        self.except_code = except_code
+
+class CV(object):
     """\
     Create a layer object between CV device and transaction entity
     """
+    FUNC_CODE_READ_UID = 0x01
+    FUNC_CODE_NOTIFY_ADDR = 0x02
+    FUNC_CODE_READ_PHY_REG = 0x03
+    FUNC_CODE_WRITE_PHY_REG = 0x04
+    FUNC_CODE_SET_INDICATION_LEVEL = 0x05   # TBD
+    FUNC_CODE_PHY_SEND = 0x10
+    FUNC_CODE_DLL_SEND = 0x11
+    FUNC_CODE_DIAG = 0x12
+    FUNC_CODE_PLC_INDICATION = 0x20
+
 
     def __init__(self, port, baudrate = 115200):
         self.init = False
         self.port_on = False
+        self.cv_uid = [0, 0]
+        self.powermesh = Powermesh(self)
         try:
             self.ser = Serial(port, baudrate = baudrate, bytesize=8, parity='N', stopbits=1)
             self.com = port
@@ -29,35 +59,38 @@ class Interface(object):
             self.port_on = True
 
             ## 接收线程启动
+            self.rcv_loop_thread = None         # All property should be initialized in __init__()
+            self.rcv_loop_thread_on = False
             self.start_rcv_loop_thread()
 
             self.queue = Queue()
             self.init = True
         except SerialException:
             debug_output("%s open fail!" % port)
+            raise SerialException
 
 
-    def __del__(self):
-        '''
-            __del__()只有在所有内部成员都没有被引用的时候才被调用，对这个类来说，就是ser关闭，rcv_loop退出
-            因此__del__()函数在这里其实调用的quit_rcv_loop_thread()和ser.close()都是无用的
-            因为这两个条件如果不满足的话，__del__()函数根本不会被执行
-
-            我所担心的主要是两点：1是uart io口被占用无法再次打开 2是启动的rcv_loop_thread()线程不能结束陷入死循环
-            实验证实：如果是命令行下调用python xxx.py执行的python程序
-            调用任务管理器将python程序强行关闭
-            虽然不会调用__del__()函数
-            但uart io会关闭，rcv_loop_thread（）线程也会被结束
-
-            所以无需担心
-        '''
-        debug_output("eliminate Interface object")
-        try:
-            self.quit_rcv_loop_thread()         # 接收线程结束
-            self.ser.close()
-        except Exception as e:
-            debug_output("except happened when Interface object destructed!")
-            print e
+    # def __del__(self):
+    #     """
+    #         __del__()只有在所有内部成员都没有被引用的时候才被调用，对这个类来说，就是ser关闭，rcv_loop退出
+    #         因此__del__()函数在这里其实调用的quit_rcv_loop_thread()和ser.close()都是无用的
+    #         因为这两个条件如果不满足的话，__del__()函数根本不会被执行
+    #
+    #         我所担心的主要是两点：1是uart io口被占用无法再次打开 2是启动的rcv_loop_thread()线程不能结束陷入死循环
+    #         实验证实：如果是命令行下调用python xxx.py执行的python程序
+    #         调用任务管理器将python程序强行关闭
+    #         虽然不会调用__del__()函数
+    #         但uart io会关闭，rcv_loop_thread（）线程也会被结束
+    #
+    #         所以无需担心
+    #     """
+    #     debug_output("eliminate Interface object")
+    #     try:
+    #         self.quit_rcv_loop_thread()         # 接收线程结束
+    #         self.ser.close()
+    #     except Exception as e:
+    #         debug_output("except happened when Interface object destructed!")
+    #         print e
 
 
     def is_open(self):
@@ -82,46 +115,33 @@ class Interface(object):
             self.quit_rcv_loop_thread()      # 接收线程结束
             self.ser.close()
             self.port_on = False
-
         else:
             debug_output("Port has been already closed")
-
-
-    def write(self, write_str):
-        self.ser.write(write_str)
-
-
-    def send(self, decimal_array):
-        # data: a list of DECIMAL BYTE DATA
-        # output: '<ASC_HEX_STR>'
-        if self.port_on:
-            self.ser.write('<' + dec_array_to_asc_hex_str(decimal_array) + '>')
-        else:
-            print('port is not opened')
 
 
     def rcv_loop(self):
         ## 监视CV返回文本的独立线程
         ## 有符合CV通信协议的数据则将其放入Queue中
-
         self.rcv_loop_thread_on = True
-
         rcv_data = ''
         rcv_bytes = 0
+
         while self.rcv_loop_thread_on:
-            debug_output('loop')
             try:
                 if self.ser.inWaiting() != rcv_bytes:
                     rcv_bytes = self.ser.inWaiting()        # receving status
                 else:
                     if rcv_bytes:
-                        rcv_data += self.ser.read(rcv_bytes) # 整包取出并状态清零
+                        temp = self.ser.read(rcv_bytes)
+                        sys.stdout.write(temp)
+                        rcv_data += temp # 整包取出并状态清零
                         rcv_bytes = 0
 
                         # 获得有效的接收并将其放入Queue中
                         match_rslt = re.findall(r'<(\w+)>',rcv_data)
                         if match_rslt:
                             for item in match_rslt:
+                                debug_output('\n<= <' + item + '>')
                                 self.queue.put(item)
                             index = rcv_data.rfind(match_rslt[-1]) + len(match_rslt[-1]) + 1    #
                             rcv_data = rcv_data[index:]
@@ -142,20 +162,351 @@ class Interface(object):
     def quit_rcv_loop_thread(self):
         self.rcv_loop_thread_on = False
 
+
     def get_queue(self):
         ## get handle of queue
         return self.queue
 
 
-if '__main__' == __name__:
-    interface = Interface('com4')
-    a = asc_hex_str_to_dec_array('123456')
-    # 5/0
+    # def write(self, write_str):
+    #     ''' send 'write_str' to uart port as what it is'''
+    #     self.ser.write(write_str)
+    #
+    #
+    # def send(self, decimal_array):
+    #     ''' convert decimal_array as hex str included with a pair of '<' and '>', and send it to uart port
+    #     Params:
+    #         data: a list of DECIMAL BYTE DATA
+    #     Output to cv:
+    #         '<ASC_HEX_STR>'
+    #     '''
+    #     if self.port_on:
+    #         self.ser.write('<' + dec_array_to_asc_hex_str(decimal_array) + '>')
+    #     else:
+    #         print('port is not opened')
 
-    a = ''
-    while a != 'quit':
-        a = raw_input('>')
-        interface.write(a)
-    else:
-        interface.turn_off()
-    print "THE END"
+
+    def send_cv_a_frame(self, frame):
+        """
+            向cv发送一帧命令 格式 <ADDR_H ADDR_L FUNC_CODE BODY CRC_H CRC_L>
+        Params:
+            frame: ‘<ASC HEX STR>’/ASC HEX STR/ DECIMAL BYTE LIST
+        Output to cv:
+            '<ASC_HEX_STR>'
+        Return:
+            cv frame func_code
+        """
+        if not self.port_on:
+            print('port is not opened')
+            return
+        else:
+            if type(frame) == str:
+                if frame[0] == '<' and frame[-1] == '>':
+                    assert len(frame) >= 12, 'not enough frame length' # <addr_h,addr_l,func_code,crc_h,crc_l> at least 12 bytes
+                else:
+                    assert len(frame) >= 10, 'not enough frame length'
+                    frame = '<' + frame + '>'
+                func_code = int(frame[5:7] ,16)
+            else:
+                func_code = frame[2]
+                frame = '<' + dec_array_to_asc_hex_str(frame) + '>'
+            debug_output('=> ' + frame)
+            self.ser.write(frame)
+            return func_code
+
+
+    def wait_a_response(self, timeout):
+        """
+            in case of the return of  is not what you are waiting for,
+            you can start another waiting by this function, and just input the returned timeout remains to it
+            如果single_response_transaction()得到的不是正确的返回，可以调用此函数开始新的等待
+            并只需将上次返回的剩余timeout时间传入即可
+        """
+        ct = time.clock()
+        try:
+            ret = self.queue.get(timeout = timeout)
+            return ret, timeout + ct - time.clock()
+        except Empty:
+            return None, None       # 为了处理index保持一致
+
+
+    def parse_return(self, cv_frame):
+        """
+            检查cv的返回
+            如ret为None, raise PvmException with TimeOut error code
+            如ret不符合crc要求，raise PvmException with EXCEPT_CODE_FORMAT_ERR error code
+            如ret本身是一个exception帧，raise PvmException with its error code
+            如ret正常，返回([addr_h, addr_l], func_code, body)
+        """
+
+        # Check validility
+        if cv_frame is None:
+            raise PvmException(PvmException.EXCEPT_CODE_TIME_OUT, 'cv response time out')
+
+        cv_frame = asc_hex_str_to_dec_array(cv_frame)
+
+        if len(cv_frame) < 5:
+            raise PvmException(PvmException.EXCEPT_CODE_FORMAT_ERR, 'bad cv frame length')
+
+        if crc16(cv_frame) != [0xE2, 0xF0]:
+            raise PvmException(PvmException.EXCEPT_CODE_FORMAT_ERR, 'crc error')
+
+        addr = cv_frame[0:2]
+        func_code = cv_frame[2]
+        body = cv_frame[3:-2]
+
+        if addr != [0, 0] and addr != self.cv_uid:
+            raise PvmException(PvmException.EXCEPT_CODE_FORMAT_ERR, 'error cv uid address: ' + str(addr))
+
+        if func_code & 0x80:
+            raise PvmException(func_code, 'cv return exception')
+
+        if func_code & 0x40:
+            return func_code, body
+        else:
+            raise PvmException(PvmException.EXCEPT_CODE_FORMAT_ERR, 'direction bit flag is not set')
+
+
+    def single_response_transaction(self, frame, time_remains = 1):
+        """
+            向cv发送一帧命令， 并期待在timeout（单位：秒）时间内cv有一次返回
+            检查返回帧的格式, 要求格式正确，CRC正确，地址正确, 命令字正确
+        Params:
+            send_cmd: 向cv发送的命令，格式 ‘<ASC HEX STR>’ 或 decimal byte list
+            timeout:  最大等待时间
+        Return:
+            cv返回命令数据体
+            or
+            None (if timeout)
+            2016-11-12 CV超时不属于Exception, 属于需要处理的正常情况
+        """
+        func_code = self.send_cv_a_frame(frame)
+        while time_remains > 0:
+            ret_frame, time_remains = self.wait_a_response(time_remains)
+            if ret_frame is not None:
+                ret_func_code, body = self.parse_return(ret_frame)
+                if func_code & 0x3F == ret_func_code & 0x3F:
+                    return body
+                else:
+                    debug_output('got a un-expected response')
+                    debug_output(dec_array_to_asc_hex_str(ret_frame))
+                    pass                # TBD proceed unexpected frame
+        return None
+
+    def multiple_response_transaction(self, frame, timeout):
+        """
+            向cv发送一帧命令， 并收集所有cv的返回, 用于一发多收的场景中
+        Params:
+            send_cmd: 向cv发送的命令，格式 ‘<ASC HEX STR>’ 或 decimal byte list
+            timeout:  等待时间
+        Returns:
+            A list consisted of returned frame, maybe empty if no frame returned
+        """
+        self.send_cv_a_frame(frame)
+        ret = []
+        ct = time.clock()
+        while time.clock() - ct < timeout:
+            if self.queue.qsize() > 0:
+                ret.append(self.queue.get())
+        return ret
+
+
+    def gen_fpu_to_cv_frame(self, func_code, body = []):
+        """
+            生成fpu发往cv的命令帧
+        Params:
+            func_code: 功能码
+            target_addr: CV UID的CRC, 0x0000为通配地址
+        Return:
+            decimal list
+        """
+
+        frm = self.cv_uid + [func_code] + body
+        frm += crc16(frm)
+        return frm
+
+
+    def read_uid(self):
+        """ 读取cv的uid, 成功则返回target uid 并更新cv_uid crc, 失败则返回None
+            可用此命令检查uart连接
+        Params:
+            No
+        Returns:
+            uid(dec byte list)
+        Exception:
+            PvmException(Error_Code, Msg)
+        """
+        frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_READ_UID)
+        uid = self.single_response_transaction(frm)
+        self.cv_uid = crc16(uid)
+        return uid
+
+
+    def diag(self, target_uid, xmode = 0x10, rmode = 0x10, scan = 0x01):
+        """ diag a module by uid formated as an ascii hex str
+        Params:
+            target_uid: an 12-byte asc hex str, e.g. '5e1d0a05ff', OR 6 byte decimal byte list
+            xmode:
+                0x10:   CH0(131.58kHz), bpsk(5.4825kbps);
+                0x20:   CH1(263.16kHz), bpsk;
+                0x40:   CH2(312.5kHz), bpsk;
+                0x80:   CH3(416.67kHz), bpsk;
+                0xf0:   SALVO(CH0+CH1+CH2+CH3), bpsk;
+                0x11:   CH0, ds15(365.4971bps);
+                0x21:   CH1, ds15;
+                0x41:   CH2, ds15;
+                0x81:   CH3, ds15;
+                0xf1:   SALVO(CH0+CH1+CH2+CH3), ds15;
+                0x12:   CH0, ds63(87.0231bps);
+                0x22:   CH1, ds63;
+                0x42:   CH2, ds63;
+                0x82:   CH3, ds63;
+                0xf2:   SALVO(CH0+CH1+CH2+CH3), ds63;
+            rmode:
+                same as xmode
+            scan:
+                ch scan mode
+            xmode: 0x10
+        """
+
+        if type(target_uid) == str:
+            assert len(target_uid) == 12, 'error target uid length: %s' % target_uid
+            target_uid = asc_hex_str_to_dec_array(target_uid)
+        assert len(target_uid) == 6, 'error target uid length: %s' % target_uid
+
+        frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_DIAG, target_uid + [xmode, rmode, scan])
+        try:
+            result = self.single_response_transaction(frm, 5)
+
+            if result:
+                rate_map = {0x00:'BPSK',0x01:'DS15',0x02:'DS63'}
+                result = [item if item <128 else item - 256 for item in result]
+                down_result=[]
+                up_result=[]
+                if scan:
+                    for i in range(4):
+                        down_result.append([result[i*2], result[i*2+1]])
+                        up_result.append([result[i*2+8], result[i*2+9]])
+                else:
+                    p = 0
+                    for i in range(4):
+                        if xmode & (0x10<<i):
+                            down_result.append([result[p*2], result[p*2+1]])
+                            p += 1
+                        else:
+                            down_result.append(['NA', 'NA'])
+
+
+                    for i in range(4):
+                        if rmode & (0x10<<i):
+                            up_result.append([result[p*2], result[p*2+1]])
+                            p += 1
+                        else:
+                            up_result.append(['NA', 'NA'])
+
+                print 'DIAG RESULT:'
+                print 'TARGET UID:%s' % dec_array_to_asc_hex_str(target_uid)
+                print '-------------------------------------------------'
+                print '\t\tDOWNLINK(%s)\t\t\tUPLINK(%s)' % (rate_map[xmode&0x0F], rate_map[rmode&0x0F])
+                print '\t\tSS(dBuV)\tSNR(dB)\t\tSS(dBuV)\tSNR(dB)'
+                for i in range(4):
+                    print 'CH%d:\t%s\t\t\t%s\t\t\t%s\t\t\t%s' % (i,down_result[i][0],down_result[i][1],up_result[i][0],up_result[i][1])
+
+
+            return result
+        except PvmException as pe:
+            print str(pe)
+
+
+    def phy_send(self, psdu, xmode=0x80, scan = False, srf = False, ac_update = False, delay = 0):
+        """ 控制cv发送phy帧
+            format: 1B phase, 1B psdu_len, 1B xmode, 1B prop, 4B delay, NB psdu
+        Params:
+            psdu: 物理帧体，必须是decimal byte list
+            xmode: 高4位表频率, 低2位表速率
+                    0x1X: CH0   0xX0: BPSK
+                    0x2X: CH1   0xX1: DS15
+                    0x4X: CH2   0xX2: DS63
+                    0x8X: CH3
+                    0xFX: SALVO
+            scan:
+            srf:
+            ac_update:
+            delay:  延迟发送的毫秒数
+        """
+        assert (xmode & 0xF0 in (0x10, 0x20, 0x40, 0x80, 0xF0) and xmode % 4 in (0x00, 0x01, 0x02)), "error xmode 0x%02X" % xmode
+        assert len(psdu) <= 300, "error phy len %d" % len(psdu)
+
+        phase = [0]
+        psdu_len = [len(psdu)]
+        prop = [(0x08 if scan else 0) \
+                | (0x04 if srf else 0) \
+                | (0x01 if ac_update else 0)]
+        delay_list = asc_hex_str_to_dec_array('%08X' % (delay))
+
+        frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_PHY_SEND, phase + psdu_len + [xmode] + prop + delay_list + psdu)
+        return self.single_response_transaction(frm)
+
+
+    def dll_send(self, target_uid, lsdu, prop = 0, xmode = 0x80, rmode = 0x80, delay=0):
+        """ 控制cv发送dll帧
+            format: 1B phase, 1B lsdu_len, 6B uid, 1B prop, 1B xmode, 1B rmode, 4B delay, NB lsdu
+        Params:
+            lsdu: 必须是decimal byte list
+            target_uid: 必须是12字节str或6字节decimal byte list
+            prop: [DIAG ACK REQ_ACK EDP_PROTOCAL SCAN SRF 0 ACUPDATE]
+            xmode: 发送模式
+            rmode: 仅定义diag，ebc时有用
+        """
+
+        if type(target_uid) == str:
+            assert len(target_uid) == 12, 'error target uid length: %s' % target_uid
+            target_uid = asc_hex_str_to_dec_array(target_uid)
+        assert len(target_uid) == 6, 'error target uid length: %s' % target_uid
+
+        assert (xmode & 0xF0 in (0x10, 0x20, 0x40, 0x80, 0xF0) and xmode % 4 in (0x00, 0x01, 0x02)), "error xmode 0x%02X" % xmode
+        assert (rmode & 0xF0 in (0x10, 0x20, 0x40, 0x80, 0xF0) and rmode % 4 in (0x00, 0x01, 0x02)), "error rmode 0x%02X" % rmode
+
+        phase = [0]
+        lsdu_len = [len(lsdu)]
+        delay_list = asc_hex_str_to_dec_array('%08X' % (delay))
+
+        frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_DLL_SEND, phase + lsdu_len + target_uid + [prop, xmode, rmode] + delay_list + lsdu)
+        return self.single_response_transaction(frm)
+
+
+
+
+if '__main__' == __name__:
+    cv = CV('com3')
+
+    try:
+        # ret = interface.single_response_transaction('0000012342')
+        # if ret is not None:
+        #     print ret
+        #
+        # ret = interface.multiple_response_transaction('0000012342', timeout = 2)
+        # print ret
+
+        uid = cv.read_uid()
+        print 'cv uid:', dec_array_to_asc_hex_str(uid)
+
+        # result = interface.diag('ffffffffffff',0x41,0x10)
+        # print result
+
+        # cv.phy_send(range(20), xmode = 0x41, scan=1)
+        # cv.dll_send('ffffffffffff', range(10))
+        cv.powermesh.ebc_broadcast(xmode = 0x80, rmode= 0x80, scan = 1, window = 5)
+
+
+        time.sleep(10)
+
+
+    # except Exception as e:
+    #     print str(e)
+
+    finally:
+        cv.close()
+        del cv
+
+        print "THE END"
