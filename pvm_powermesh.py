@@ -3,13 +3,8 @@
 
 import powermesh_rscodec
 from pvm_util import *
-
-
-BIT_DLL_SEND_PROP_EDP = 0x10
-BIT_DLL_SEND_PROP_SCAN = 0x08
-
-EXP_EDP_EBC_NBF = 0x00
-EXP_EDP_EBC = 0x40
+from powermesh_spec import *
+from Queue import Queue, Empty
 
 
 def encode_xmode(xmode, scan):
@@ -39,6 +34,26 @@ def encode_xmode(xmode, scan):
             xcode += ((xmode & 0x0F) << 2)
     return xcode
 
+class PowermeshPacket():
+    ''' Powermesh Packet
+    '''
+    def __init__(self, phase, phy_rcv_valid, ppdu):
+        self.phase = phase
+
+        # PHY Layer
+        self.phy_rcv_valid = phy_rcv_valid
+        self.ppdu = ppdu
+
+        # DLL Layer
+        self.dll_rcv_valid = 0
+        self.dll_rcv_indication = 0
+        self.lpdu = []
+
+        # APP Layer
+        self.protocol = ''
+        self.source_uid = [0,0,0,0,0,0]
+        self.apdu = []
+
 class Powermesh():
     '''A powermesh frame object
     '''
@@ -50,30 +65,74 @@ class Powermesh():
             interface: CV object handle
         """
         self.interface = interface
-
+        self.plc_queue = Queue()
         self.broad_id = 1
         pass
 
-    def app_send(self):
+
+    def get_plc_queue(self):
+        return self.plc_queue
+
+
+    def dll_rcv_proc(self, packet):
+        if packet.phy_rcv_valid:
+            phpr = packet.ppdu[SEC_PHPR]
+            if phpr & 0x03 == FIRM_VER:
+                if phpr & PHY_FLAG_SRF:
+                    packet.dll_rcv_valid = BIT_DLL_VALID | BIT_DLL_ACK | BIT_DLL_SRF
+                    packet.dll_rcv_indication = 1
+                else:
+                    dlct = packet.ppdu[SEC_DLCT]
+                    ## TODO: other dll proc...
+                    pass
+
+                if packet.dll_rcv_valid & BIT_DLL_VALID:
+                    if packet.dll_rcv_valid & BIT_DLL_SRF:
+                        packet.lpdu = packet.ppdu[1:-1]
+                    else:
+                        packet.lpdu = packet.ppdu[SEC_LPDU:-2]
+            else:
+                print "error FIRM_VER"
+        return packet
+
+
+    def nw_rcv_proc(self, packet):
+        if packet.dll_rcv_valid and not packet.dll_rcv_valid & BIT_DLL_SRF:
+            if not packet.lpdu[SEC_LPDU_DLCT] & BIT_DLCT_DIAG:
+                nw_protocol_code = packet.lpdu[SEC_LPDU_PSR_ID] & 0xF0
+                if nw_protocol_code == CST_PTP_PROTOCOL:
+                    packet = self.ptp_rcv_proc(packet)
+                # elif nw_protocol_code == CST_PSR_PROTOCOL:
+                #     ##TODO: psr proc
+                #     pass
+                # elif nw_protocol_code == CST_DST_PROTOCOL:
+                #     ##TODO: psr proc
+                #     pass
+                else:
+                    print "error network protocol %x" % (nw_protocol_code,)
+        return packet
+
+
+    def ptp_rcv_proc(self, packet):
+        if packet.dll_rcv_valid:
+            packet.source_uid = packet.lpdu[SEC_LPDU_SRC : SEC_LPDU_SRC+6]
+            packet.apdu = packet.lpdu[SEC_LPDU_PTP_APDU:]
+            packet.protocol = 'PTP'
+        return packet
+
+
+    def app_rcv_proc(self, packet):
         pass
 
-    def dll_send(self, target_uid, lsdu, prop = 0, xmode = 0x80, rmode = 0x80, delay = 0):
 
-        pass
+    def run_rcv_proc(self, rcv_body):
+        packet = PowermeshPacket(rcv_body[0],rcv_body[1],rcv_body[2:])
 
-    def phy_rcv_proc(self, ppdu):
-        psdu = []
-        return psdu
+        self.dll_rcv_proc(packet)
+        self.nw_rcv_proc(packet)
+        self.app_rcv_proc(packet)
 
-    def dll_rcv_proc(self, lpdu):
-        lsdu = []
-        return lsdu
-
-    def nw_rcv_proc(self, npdu):
-        pass
-
-    def run_rcv_proc(self, ppdu):
-        pass
+        self.plc_queue.put(packet)
 
     def ebc_broadcast(self, update_bid = True, xmode = 0x10, rmode = 0x10, scan = 1, mask = 0, window = 5):
         """
@@ -90,3 +149,16 @@ class Powermesh():
 
         self.interface.dll_send([0,0,0,0,0,0], lsdu, prop, xmode, rmode, delay = 0.02)
 
+if __name__ == '__main__':
+    from pvm_util import *
+    pm = Powermesh(None)
+    q = pm.get_plc_queue()
+
+    # cv_input = '00006000FC3D25E2BC8834'
+    # rcv_body = asc_hex_str_to_dec_array(cv_input)
+    # pm.run_rcv_proc(rcv_body[3:-2])
+
+    cv_input = '3118BDFFFFFFFFFFFF00570B0031004EF0000001020310A2'
+    rcv_body = asc_hex_str_to_dec_array(cv_input)
+    pm.run_rcv_proc(rcv_body)
+    print dec_array_to_asc_hex_str(q.get().lpdu)

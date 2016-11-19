@@ -13,7 +13,10 @@ from Queue import Queue, Empty
 import re
 import sys
 
+
 class PvmFatalException(Exception):
+    """ The exceptions when raised the whole process should quit
+    """
     pass
 
 class PvmException(Exception):
@@ -30,6 +33,13 @@ class PvmException(Exception):
     def __init__(self, except_code, msg = ''):
         Exception.__init__(self,msg)
         self.except_code = except_code
+
+## ACP Protocol constants
+ACP_IDTP_DB = 0             #域广播
+ACP_IDTP_VC = 1             #单点通信
+ACP_IDTP_MC = 2             #多点抄读
+ACP_IDTP_GB = 3             #组控制
+
 
 class CV(object):
     """\
@@ -49,8 +59,9 @@ class CV(object):
     def __init__(self, port, baudrate = 115200):
         self.init = False
         self.port_on = False
-        self.cv_uid = [0, 0]
+        self.cv_uid_crc = [0, 0]
         self.powermesh = Powermesh(self)
+
         try:
             self.ser = Serial(port, baudrate = baudrate, bytesize=8, parity='N', stopbits=1)
             self.com = port
@@ -65,9 +76,24 @@ class CV(object):
 
             self.queue = Queue()
             self.init = True
+
+            # acp init
+            uid = self.read_uid()
+            if uid:
+                self.cv_uid_crc = crc16(uid)
+                debug_output('set cv domain id as ' + dec_array_to_asc_hex_str(self.cv_uid_crc))
+                self.set_domain_id(self.cv_uid_crc)       # 初始域ID
+            else:
+                raise PvmFatalException('cv uid read fail! check RS485 connection!')
+            self.set_self_vid()
+
         except SerialException:
             debug_output("%s open fail!" % port)
             raise SerialException
+        except Exception as err:
+            self.close()
+            print str(err)
+            raise err
 
 
     # def __del__(self):
@@ -142,7 +168,11 @@ class CV(object):
                         if match_rslt:
                             for item in match_rslt:
                                 debug_output('\n<= <' + item + '>')
-                                self.queue.put(item)
+                                if item[4:6] == '60' and hasattr(self,'powermesh'):
+                                    ret_func_code, body = self.parse_return(item)
+                                    self.powermesh.run_rcv_proc(body)
+                                else:
+                                    self.queue.put(item)
                             index = rcv_data.rfind(match_rslt[-1]) + len(match_rslt[-1]) + 1    #
                             rcv_data = rcv_data[index:]
                 time.sleep(0.001)
@@ -150,7 +180,11 @@ class CV(object):
                 debug_output('Comm Object is Cleared')
                 self.rcv_loop_thread_on = False
                 self.queue.put(None)
-                break;
+                break
+            except PvmException as pe:
+                print "rcv loop thread PvmException!"
+                print str(pe)
+                break
         debug_output('rcv loop thread quit')
 
 
@@ -169,17 +203,17 @@ class CV(object):
 
 
     # def write(self, write_str):
-    #     ''' send 'write_str' to uart port as what it is'''
+    #     """ send 'write_str' to uart port as what it is"""
     #     self.ser.write(write_str)
     #
     #
     # def send(self, decimal_array):
-    #     ''' convert decimal_array as hex str included with a pair of '<' and '>', and send it to uart port
+    #     """ convert decimal_array as hex str included with a pair of '<' and '>', and send it to uart port
     #     Params:
     #         data: a list of DECIMAL BYTE DATA
     #     Output to cv:
     #         '<ASC_HEX_STR>'
-    #     '''
+    #     """
     #     if self.port_on:
     #         self.ser.write('<' + dec_array_to_asc_hex_str(decimal_array) + '>')
     #     else:
@@ -255,7 +289,7 @@ class CV(object):
         func_code = cv_frame[2]
         body = cv_frame[3:-2]
 
-        if addr != [0, 0] and addr != self.cv_uid:
+        if addr != [0, 0] and addr != self.cv_uid_crc:
             raise PvmException(PvmException.EXCEPT_CODE_FORMAT_ERR, 'error cv uid address: ' + str(addr))
 
         if func_code & 0x80:
@@ -321,7 +355,7 @@ class CV(object):
             decimal list
         """
 
-        frm = self.cv_uid + [func_code] + body
+        frm = self.cv_uid_crc + [func_code] + body
         frm += crc16(frm)
         return frm
 
@@ -338,7 +372,6 @@ class CV(object):
         """
         frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_READ_UID)
         uid = self.single_response_transaction(frm)
-        self.cv_uid = crc16(uid)
         return uid
 
 
@@ -475,6 +508,61 @@ class CV(object):
         return self.single_response_transaction(frm)
 
 
+    def app_send(self, apdu, protocol = 'ptp', target_uid = 'ffffffffffff'):
+        if protocol == 'ptp':
+            lsdu = [0xF0, 0x00] + apdu
+            self.dll_send(target_uid,lsdu)
+
+    def set_domain_id(self, domain_id):
+        """ 设置acp的域id, 缺省情况下就是cv uid的CRC值
+        """
+        self.domain_id_high8 = domain_id[0]
+        self.domain_id_low8 = domain_id[1]
+
+
+    def set_self_vid(self, self_vid = 1):
+        """ 设置cv的acp的vid，缺省主控为1, 其他SS为其他自然数
+        """
+        self.self_vid = self_vid
+
+    def acp_send(self, acp_body, idtp, target_uid = 'ffffffffffff', req = 1, domain_id = [0, 0], vid = 0, start_vid = 0, end_vid = 0, gid = 0):
+        """ ACP Protocl Packet
+        Params:
+            acp_body: 数据体
+            idtp: 通信地址类型
+                ACP_IDTP_DB: 域广播
+                ACP_IDTP_VC: 点播
+                ACP_IDTP_MC: 多播
+                ACP_IDTP_GC: 组播
+            domain_id: 域地址
+            req: 需要回复
+        """
+        apdu = [0x18]
+        if not hasattr(self, 'acp_tran_id'):
+            self.acp_tran_id = 0
+
+        apdu += [(idtp<<5) | self.acp_tran_id, domain_id[0], domain_id[1]]
+        self.acp_tran_id = (self.acp_tran_id + 1 ) % 0x10
+
+        if idtp == ACP_IDTP_DB:
+            pass
+        elif idtp == ACP_IDTP_VC:
+            apdu.append([(vid >> 8) % 256, vid % 256])
+        elif idtp == ACP_IDTP_MC:
+            apdu.append([(start_vid >> 8) % 256, start_vid % 256, (end_vid >> 8) % 256, end_vid % 256, (self.self_vid >> 8) % 256, self.self_vid % 256])
+        elif idtp == ACP_IDTP_GC:
+            apdu.append([(gid >> 8) % 256, gid % 256])
+
+        if req:
+            acp_body[0] |= 0x40     # acp body第一字节为command, 第6位为req
+
+        apdu += acp_body
+        apdu.append(calc_cs(apdu))
+
+        self.app_send(apdu,'ptp',target_uid)
+
+
+
 
 
 if '__main__' == __name__:
@@ -496,10 +584,15 @@ if '__main__' == __name__:
 
         # cv.phy_send(range(20), xmode = 0x41, scan=1)
         # cv.dll_send('ffffffffffff', range(10))
-        cv.powermesh.ebc_broadcast(xmode = 0x80, rmode= 0x80, scan = 1, window = 5)
+        # cv.powermesh.ebc_broadcast(xmode = 0x80, rmode= 0x80, scan = 1, window = 5)
+        # time.sleep(1)
 
+        # cv.app_send(asc_hex_str_to_dec_array('112233445566'))
+        # time.sleep(2)
 
-        time.sleep(10)
+        cv.acp_send(asc_hex_str_to_dec_array('01FFFFFFFFFFFF9527'), ACP_IDTP_DB, domain_id=[0,0], target_uid='570A004D0054')
+        time.sleep(2)
+
 
 
     # except Exception as e:
