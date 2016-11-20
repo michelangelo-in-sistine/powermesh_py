@@ -35,8 +35,8 @@ def encode_xmode(xmode, scan):
     return xcode
 
 class PowermeshPacket():
-    ''' Powermesh Packet
-    '''
+    """ Powermesh Packet
+    """
     def __init__(self, phase, phy_rcv_valid, ppdu):
         self.phase = phase
 
@@ -53,6 +53,17 @@ class PowermeshPacket():
         self.protocol = ''
         self.source_uid = [0,0,0,0,0,0]
         self.apdu = []
+        self.app_rcv_indication = 0
+
+
+    def abandon(self):
+        """ abandon packet
+        """
+        self.phy_rcv_valid = 0
+        self.dll_rcv_valid = 0
+        self.dll_rcv_indication = 0
+
+
 
 class Powermesh():
     '''A powermesh frame object
@@ -74,6 +85,16 @@ class Powermesh():
         return self.plc_queue
 
 
+    def check_uid(self, packet):
+        target_uid = packet.ppdu[SEC_DEST:SEC_DEST+6]
+        if target_uid == [0,0,0,0,0,0] or target_uid == [0xff,0xff,0xff,0xff,0xff,0xff]\
+            or target_uid == self.interface.cv_uid:
+            return True
+        else:
+            return False
+
+
+
     def dll_rcv_proc(self, packet):
         if packet.phy_rcv_valid:
             phpr = packet.ppdu[SEC_PHPR]
@@ -83,14 +104,30 @@ class Powermesh():
                     packet.dll_rcv_indication = 1
                 else:
                     dlct = packet.ppdu[SEC_DLCT]
-                    ## TODO: other dll proc...
-                    pass
 
-                if packet.dll_rcv_valid & BIT_DLL_VALID:
-                    if packet.dll_rcv_valid & BIT_DLL_SRF:
-                        packet.lpdu = packet.ppdu[1:-1]
+                    if self.check_uid(packet):
+                        if dlct & BIT_DLCT_DIAG:
+                            #TODO:
+                            pass
+                        else:
+                            if dlct & BIT_DLCT_ACK:
+                                packet.dll_rcv_valid = BIT_DLL_VALID | BIT_DLL_ACK | (dlct & BIT_DLL_IDX)
+                                packet.dll_rcv_indication = 1
+                            else:
+                                if dlct & BIT_DLCT_REQ_ACK:
+                                    debug_output('req_ack packet received!')
+                                    packet.abandon()
+                                else:
+                                    packet.dll_rcv_valid = BIT_DLL_VALID | (dlct & BIT_DLL_IDX)
+
+                        if packet.dll_rcv_valid & BIT_DLL_VALID:
+                            if packet.dll_rcv_valid & BIT_DLL_SRF:
+                                packet.lpdu = packet.ppdu[1:-1]
+                            else:
+                                packet.lpdu = packet.ppdu[SEC_LPDU:-2]
                     else:
-                        packet.lpdu = packet.ppdu[SEC_LPDU:-2]
+                        debug_output('packet target uid mismatch!')
+                        packet.abandon()
             else:
                 print "error FIRM_VER"
         return packet
@@ -118,6 +155,7 @@ class Powermesh():
             packet.source_uid = packet.lpdu[SEC_LPDU_SRC : SEC_LPDU_SRC+6]
             packet.apdu = packet.lpdu[SEC_LPDU_PTP_APDU:]
             packet.protocol = 'PTP'
+            packet.app_rcv_indication = 1
         return packet
 
 
@@ -127,12 +165,12 @@ class Powermesh():
 
     def run_rcv_proc(self, rcv_body):
         packet = PowermeshPacket(rcv_body[0],rcv_body[1],rcv_body[2:])
-
         self.dll_rcv_proc(packet)
         self.nw_rcv_proc(packet)
         self.app_rcv_proc(packet)
 
-        self.plc_queue.put(packet)
+        if packet.dll_rcv_indication or packet.app_rcv_indication:
+            self.plc_queue.put(packet)
 
     def ebc_broadcast(self, update_bid = True, xmode = 0x10, rmode = 0x10, scan = 1, mask = 0, window = 5):
         """

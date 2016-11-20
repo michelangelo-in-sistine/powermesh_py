@@ -44,7 +44,7 @@ class CV(object):
         frame = '000012' + target_uid + dec_array_to_asc_hex_str([xmode, rmode, scan])
         frame = asc_hex_str_to_dec_array(frame)
         frame += crc16(frame)
-        ret = self.interface.single_response_transaction(frame)
+        ret = self.interface.single_cv_response_transaction(frame)
         print ret
 
 if __name__ == '__main__':

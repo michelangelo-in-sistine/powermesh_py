@@ -74,12 +74,15 @@ class CV(object):
             self.rcv_loop_thread_on = False
             self.start_rcv_loop_thread()
 
-            self.queue = Queue()
+            self.cv_queue = Queue()
+            self.plc_queue = self.powermesh.get_plc_queue()     # PLC接收单独一个队列
             self.init = True
 
             # acp init
+            self.set_xmode()
             uid = self.read_uid()
             if uid:
+                self.cv_uid = uid
                 self.cv_uid_crc = crc16(uid)
                 debug_output('set cv domain id as ' + dec_array_to_asc_hex_str(self.cv_uid_crc))
                 self.set_domain_id(self.cv_uid_crc)       # 初始域ID
@@ -159,7 +162,8 @@ class CV(object):
                 else:
                     if rcv_bytes:
                         temp = self.ser.read(rcv_bytes)
-                        sys.stdout.write(temp)
+                        #sys.stdout.write(temp)
+                        debug_output(temp)
                         rcv_data += temp # 整包取出并状态清零
                         rcv_bytes = 0
 
@@ -172,14 +176,14 @@ class CV(object):
                                     ret_func_code, body = self.parse_return(item)
                                     self.powermesh.run_rcv_proc(body)
                                 else:
-                                    self.queue.put(item)
+                                    self.cv_queue.put(item)
                             index = rcv_data.rfind(match_rslt[-1]) + len(match_rslt[-1]) + 1    #
                             rcv_data = rcv_data[index:]
                 time.sleep(0.001)
             except SerialException:
                 debug_output('Comm Object is Cleared')
                 self.rcv_loop_thread_on = False
-                self.queue.put(None)
+                self.cv_queue.put(None)
                 break
             except PvmException as pe:
                 print "rcv loop thread PvmException!"
@@ -199,7 +203,7 @@ class CV(object):
 
     def get_queue(self):
         ## get handle of queue
-        return self.queue
+        return self.cv_queue
 
 
     # def write(self, write_str):
@@ -249,19 +253,28 @@ class CV(object):
             return func_code
 
 
-    def wait_a_response(self, timeout):
+    def wait_a_response(self, queue_handle, timeout):
+        """ 等待一个队列的响应，按时收到响应返回（响应对象，剩余时间），超时返回(None, 0)
+        Params:
+            queue_handle: 可以是cv队列，也可以是plc队列
+            timeout: 最大等待时间
+        """
+        ct = time.clock()
+        try:
+            ret = queue_handle.get(timeout = timeout)
+            return ret, timeout + ct - time.clock()
+        except Empty:
+            return None, 0       # 为了处理index保持一致
+
+
+    def wait_a_cv_response(self, timeout):
         """
             in case of the return of  is not what you are waiting for,
             you can start another waiting by this function, and just input the returned timeout remains to it
             如果single_response_transaction()得到的不是正确的返回，可以调用此函数开始新的等待
             并只需将上次返回的剩余timeout时间传入即可
         """
-        ct = time.clock()
-        try:
-            ret = self.queue.get(timeout = timeout)
-            return ret, timeout + ct - time.clock()
-        except Empty:
-            return None, None       # 为了处理index保持一致
+        return self.wait_a_response(self.cv_queue, timeout)
 
 
     def parse_return(self, cv_frame):
@@ -301,7 +314,7 @@ class CV(object):
             raise PvmException(PvmException.EXCEPT_CODE_FORMAT_ERR, 'direction bit flag is not set')
 
 
-    def single_response_transaction(self, frame, time_remains = 1):
+    def single_cv_response_transaction(self, frame, time_remains = 1):
         """
             向cv发送一帧命令， 并期待在timeout（单位：秒）时间内cv有一次返回
             检查返回帧的格式, 要求格式正确，CRC正确，地址正确, 命令字正确
@@ -316,7 +329,7 @@ class CV(object):
         """
         func_code = self.send_cv_a_frame(frame)
         while time_remains > 0:
-            ret_frame, time_remains = self.wait_a_response(time_remains)
+            ret_frame, time_remains = self.wait_a_cv_response(time_remains)
             if ret_frame is not None:
                 ret_func_code, body = self.parse_return(ret_frame)
                 if func_code & 0x3F == ret_func_code & 0x3F:
@@ -326,6 +339,7 @@ class CV(object):
                     debug_output(dec_array_to_asc_hex_str(ret_frame))
                     pass                # TBD proceed unexpected frame
         return None
+
 
     def multiple_response_transaction(self, frame, timeout):
         """
@@ -340,8 +354,8 @@ class CV(object):
         ret = []
         ct = time.clock()
         while time.clock() - ct < timeout:
-            if self.queue.qsize() > 0:
-                ret.append(self.queue.get())
+            if self.cv_queue.qsize() > 0:
+                ret.append(self.cv_queue.get())
         return ret
 
 
@@ -359,7 +373,7 @@ class CV(object):
         frm += crc16(frm)
         return frm
 
-
+    ## CV Transaction
     def read_uid(self):
         """ 读取cv的uid, 成功则返回target uid 并更新cv_uid crc, 失败则返回None
             可用此命令检查uart连接
@@ -371,7 +385,7 @@ class CV(object):
             PvmException(Error_Code, Msg)
         """
         frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_READ_UID)
-        uid = self.single_response_transaction(frm)
+        uid = self.single_cv_response_transaction(frm)
         return uid
 
 
@@ -409,7 +423,7 @@ class CV(object):
 
         frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_DIAG, target_uid + [xmode, rmode, scan])
         try:
-            result = self.single_response_transaction(frm, 5)
+            result = self.single_cv_response_transaction(frm, 5)
 
             if result:
                 rate_map = {0x00:'BPSK',0x01:'DS15',0x02:'DS63'}
@@ -478,7 +492,7 @@ class CV(object):
         delay_list = asc_hex_str_to_dec_array('%08X' % (delay))
 
         frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_PHY_SEND, phase + psdu_len + [xmode] + prop + delay_list + psdu)
-        return self.single_response_transaction(frm)
+        return self.single_cv_response_transaction(frm)
 
 
     def dll_send(self, target_uid, lsdu, prop = 0, xmode = 0x80, rmode = 0x80, delay=0):
@@ -505,13 +519,24 @@ class CV(object):
         delay_list = asc_hex_str_to_dec_array('%08X' % (delay))
 
         frm = self.gen_fpu_to_cv_frame(CV.FUNC_CODE_DLL_SEND, phase + lsdu_len + target_uid + [prop, xmode, rmode] + delay_list + lsdu)
-        return self.single_response_transaction(frm)
+        return self.single_cv_response_transaction(frm)
 
 
-    def app_send(self, apdu, protocol = 'ptp', target_uid = 'ffffffffffff'):
+    def app_send(self, apdu, protocol = 'ptp', target_uid = 'ffffffffffff', xmode = None):
         if protocol == 'ptp':
+            if xmode is None:
+                xmode = self.xmode
             lsdu = [0xF0, 0x00] + apdu
-            self.dll_send(target_uid,lsdu)
+            return self.dll_send(target_uid,lsdu,xmode=xmode)
+
+
+    ## PLC Transaction Functions
+    def wait_a_plc_response(self, timeout):
+        """
+        等待PLC队列的返回
+        """
+        return self.wait_a_response(self.plc_queue, timeout)
+
 
     def set_domain_id(self, domain_id):
         """ 设置acp的域id, 缺省情况下就是cv uid的CRC值
@@ -524,6 +549,9 @@ class CV(object):
         """ 设置cv的acp的vid，缺省主控为1, 其他SS为其他自然数
         """
         self.self_vid = self_vid
+
+    def set_xmode(self, default_xmode = 0x80):
+        self.xmode = default_xmode
 
     def acp_send(self, acp_body, idtp, target_uid = 'ffffffffffff', req = 1, domain_id = [0, 0], vid = 0, start_vid = 0, end_vid = 0, gid = 0):
         """ ACP Protocl Packet
@@ -550,17 +578,49 @@ class CV(object):
             apdu.append([(vid >> 8) % 256, vid % 256])
         elif idtp == ACP_IDTP_MC:
             apdu.append([(start_vid >> 8) % 256, start_vid % 256, (end_vid >> 8) % 256, end_vid % 256, (self.self_vid >> 8) % 256, self.self_vid % 256])
-        elif idtp == ACP_IDTP_GC:
+        else:
             apdu.append([(gid >> 8) % 256, gid % 256])
 
         if req:
-            acp_body[0] |= 0x40     # acp body第一字节为command, 第6位为req
+            acp_body[0] = acp_body[0] | 0x40     # acp body第一字节为command, 第6位为req
 
         apdu += acp_body
         apdu.append(calc_cs(apdu))
 
-        self.app_send(apdu,'ptp',target_uid)
+        return self.app_send(apdu,'ptp',target_uid)
 
+    def single_acp_transaction(self, acp_body, idtp, time_remains, target_uid = 'ffffffffffff', domain_id = [0, 0], vid = 0):
+        """ 通过plc通信，FPU借助CV实现与特定的一个SS使用acp协议“一问一答”.
+            可以使用uid也可以使用vid寻址。前者适用于尚未设置vid时的地址配置，校准等工作。后者适合现场读参数
+        Params:
+            略
+        Returns：
+            如通信超时，返回None; 如通信正常，返回acp_body
+        """
+        assert idtp == ACP_IDTP_DB or idtp == ACP_IDTP_VC, 'idtp must be DB or VC, not %d' % (idtp,)
+
+        if self.acp_send(acp_body, idtp, target_uid, req = 1, domain_id = domain_id, vid = vid):
+            while time_remains > 0:
+                powermesh_packet, time_remains = self.wait_a_plc_response(time_remains)
+                if powermesh_packet is not None:
+                    debug_output(dec_array_to_asc_hex_str(powermesh_packet.apdu))
+                    return powermesh_packet.apdu
+        else:
+            debug_output('acp send Fail')
+            return None
+        debug_output('single acp transaction timeout')
+        return None         # time out
+
+    def inquire_acp_addr(self, uid):
+        """ 通过UID指定一个SS, 无论其设置的domain_id, vid是否正确，询问其地址
+        """
+        acp_frame = asc_hex_str_to_dec_array('01 ffff ffff ffff 9527')
+        return_apdu = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, 2)
+        if return_apdu:
+            return return_apdu
+
+
+    def set_acp_addr(self, uid, vid, domain_id = None, gid=0xffff):
 
 
 
@@ -590,13 +650,12 @@ if '__main__' == __name__:
         # cv.app_send(asc_hex_str_to_dec_array('112233445566'))
         # time.sleep(2)
 
-        cv.acp_send(asc_hex_str_to_dec_array('01FFFFFFFFFFFF9527'), ACP_IDTP_DB, domain_id=[0,0], target_uid='570A004D0054')
-        time.sleep(2)
+        for i in range(20):
+            apdu = cv.inquire_acp_addr('ffffffffffff')
+            if apdu:
+                print apdu
 
 
-
-    # except Exception as e:
-    #     print str(e)
 
     finally:
         cv.close()
