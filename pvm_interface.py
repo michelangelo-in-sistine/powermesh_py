@@ -875,7 +875,7 @@ class CV(object):
             debug_output('SS Module[%s] temperature calibration failed' % target_uid)
 
 
-    def calib_ss_save_calib_by_uid(self, target_uid):
+    def save_ss_calib_by_uid(self, target_uid):
         """ 将校正的系数保存到NVR
         """
         debug_output('====\nCalib SS[%s]' % target_uid)
@@ -961,7 +961,8 @@ if '__main__' == __name__:
 
 
         print '********************************************\nsave and reset SS test'
-        cv.calib_ss_save_calib_by_uid('5E1D0A098A71')
+        for uid in test_ss:
+            cv.save_ss_calib_by_uid(uid)
         cv.reset_ss_by_uid('5E1D0A098A71')
 
 

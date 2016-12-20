@@ -35,7 +35,7 @@
       <file leaf-file-name="pvm_interface.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pvm_interface.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="890" column="21" selection-start="33771" selection-end="33771" vertical-scroll-proportion="0.6280992" vertical-offset="20920" max-vertical-offset="23475">
+            <state line="893" column="82" selection-start="33916" selection-end="33916" vertical-scroll-proportion="0.7665615" vertical-offset="20889" max-vertical-offset="23500">
               <folding>
                 <element signature="e#161#203#0" expanded="true" />
                 <element signature="e#1270#1337#0" expanded="false" />
@@ -55,7 +55,7 @@
       <file leaf-file-name="pydevd.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="1142" column="0" selection-start="47510" selection-end="47510" vertical-scroll-proportion="0.0" vertical-offset="26689" max-vertical-offset="36800">
+            <state line="1142" column="0" selection-start="47510" selection-end="47510" vertical-scroll-proportion="0.0" vertical-offset="28550" max-vertical-offset="38450">
               <folding />
             </state>
           </provider>
@@ -64,7 +64,7 @@
       <file leaf-file-name="pvm_powermesh.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pvm_powermesh.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="154" column="29" selection-start="5027" selection-end="5037" vertical-scroll-proportion="0.0" vertical-offset="3585" max-vertical-offset="5100">
+            <state line="154" column="29" selection-start="5027" selection-end="5037" vertical-scroll-proportion="0.0" vertical-offset="3850" max-vertical-offset="5175">
               <folding />
             </state>
           </provider>
@@ -191,16 +191,16 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="full.screen.before.presentation.mode" value="false" />
     <property name="options.splitter.main.proportions" value="0.3" />
-    <property name="recentsLimit" value="5" />
+    <property name="full.screen.before.presentation.mode" value="false" />
     <property name="options.lastSelected" value="preferences.keymap" />
+    <property name="recentsLimit" value="5" />
     <property name="last_opened_file_path" value="C:/Python27" />
     <property name="FullScreen" value="false" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
-    <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="options.splitter.details.proportions" value="0.2" />
     <property name="options.searchVisible" value="true" />
+    <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="settings.editor.splitter.proportion" value="0.2" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
@@ -540,9 +540,9 @@
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.015625" sideWeight="0.738921" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21895425" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.26107898" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" x="482" y="878" width="515" height="235" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
     </layout-to-restore>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -564,16 +564,6 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="python-line">
-          <url>file://$PROJECT_DIR$/pvm_interface_test.py</url>
-          <line>16</line>
-          <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="python-line">
-          <url>file://$PROJECT_DIR$/pvm_interface_test.py</url>
-          <line>10</line>
-          <option name="timeStamp" value="17" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="python-line">
           <url>file://$PROJECT_DIR$/pvm_powermesh.py</url>
           <line>198</line>
@@ -627,13 +617,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_interface_test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="24" column="17" selection-start="498" selection-end="498" vertical-scroll-proportion="0.0" vertical-offset="456" max-vertical-offset="627">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pvm_util.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="4" column="24" selection-start="182" selection-end="182" vertical-scroll-proportion="0.0" vertical-offset="76" max-vertical-offset="475" />
@@ -657,13 +640,6 @@
     <entry file="file://$PROJECT_DIR$/pvm_cv.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="46" column="38" selection-start="1535" selection-end="1535" vertical-scroll-proportion="0.52243125" vertical-offset="764" max-vertical-offset="1500" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_interface_test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="10" column="0" selection-start="152" selection-end="152" vertical-scroll-proportion="-0.07102273" vertical-offset="250" max-vertical-offset="1175">
-          <folding />
-        </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/powermesh_spec.py">
@@ -699,7 +675,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/pvm_interface.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="890" column="21" selection-start="33771" selection-end="33771" vertical-scroll-proportion="0.6280992" vertical-offset="20920" max-vertical-offset="23475">
+        <state line="893" column="82" selection-start="33916" selection-end="33916" vertical-scroll-proportion="0.7665615" vertical-offset="20889" max-vertical-offset="23500">
           <folding>
             <element signature="e#161#203#0" expanded="true" />
             <element signature="e#1270#1337#0" expanded="false" />
