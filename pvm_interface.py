@@ -68,6 +68,7 @@ class CV(object):
     ACP_FUNC_CODE_SET_ADDR = 0x01           # 设置ACP地址
     ACP_FUNC_CODE_READ_PARA = 0x02          # 读取模块当前参数
     ACP_FUNC_CODE_FRAZ_PARA = 0x03          # 冻结模块当前参数
+
     ACP_FUNC_CODE_CALIB_PARA = 0x0C         # 模块校准
 
     PARA_VOLTAGE = 0x01
@@ -182,7 +183,7 @@ class CV(object):
                     if rcv_bytes:
                         temp = self.ser.read(rcv_bytes)
                         #sys.stdout.write(temp)
-                        #debug_output(temp)
+                        # debug_output(temp)
                         rcv_data += temp # 整包取出并状态清零
                         rcv_bytes = 0
 
@@ -198,7 +199,7 @@ class CV(object):
                                     self.cv_queue.put(item)
                             index = rcv_data.rfind(match_rslt[-1]) + len(match_rslt[-1]) + 1    #
                             rcv_data = rcv_data[index:]
-                time.sleep(0.001)
+                time.sleep(0.01)
             except SerialException:
                 debug_output('Comm Object is Cleared')
                 self.rcv_loop_thread_on = False
@@ -569,8 +570,10 @@ class CV(object):
         """
         self.self_vid = self_vid
 
+
     def set_xmode(self, default_xmode = 0x80):
         self.xmode = default_xmode
+
 
     def acp_send(self, acp_body, idtp, target_uid = 'ffffffffffff', req = 1, domain_id = [0, 0], vid = 0, start_vid = 0, end_vid = 0, gid = 0):
         """ ACP Protocl Packet
@@ -615,6 +618,7 @@ class CV(object):
             return temp
         else:
             return None
+
 
     def single_acp_transaction(self, acp_body, idtp, time_remains, target_uid = 'ffffffffffff', domain_id = [0, 0], vid = 0):
         """ 通过plc通信，FPU借助CV实现与特定的一个SS使用acp协议“一问一答”.
@@ -899,10 +903,95 @@ class CV(object):
             debug_output('SS Module[%s] reset failed' % target_uid)
 
 
+    def fraz_ss_current_parameter_by_uid(self, target_uid, feature_code, parameter_code):
+        """ 利用uid寻址，冻结模块当前参数
+        Params:
+            target_uid: 模块UId， 'FFFFFFFFFFFF'为通配UID地址
+            feature_code: 参数冻结特征码，为当前冻结的参数值稍后读取时所用，[0-255]
+                            SS最多能保存4次参数冻结信息4，超过最大次数后，后面的冻结信息会覆盖最早的存储冻结信息
+            parameter_code: CV.PARA_VOLTAGE(电压) | CV.PARA_CURRENT(电流) | CV.PARA_TEMPERATURE(温度), 可用"|"符号任意组合
+        Returns:
+            如果通信成功，返回feature_code
+            如果失败，返回None
+        """
+        assert feature_code < 256, "feature code should be [0-255] integer"
+
+        debug_output('====\nFreeze parameter of SS[%s], feature code %01X, para code %02X:' % (target_uid,feature_code,parameter_code))
+        acp_frame = [CV.ACP_FUNC_CODE_FRAZ_PARA, ord('F'), feature_code, parameter_code]
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=5, target_uid = target_uid)
+        print ret
+
+
+    def read_ss_fraz_parameter_by_uid(self, target_uid, feature_code, parameter_code):
+        """ 利用uid寻址，以feature_code为索引，读取模块已冻结参数. 如指定的参数不存在，则会出错
+        Params:
+            target_uid: 模块UId， 'FFFFFFFFFFFF'为通配UID地址
+            feature_code: 参数冻结特征码，[0-255]
+                            SS最多能保存4次参数冻结信息4，超过最大次数后，后面的冻结信息会覆盖最早的存储冻结信息
+            parameter_code: CV.PARA_VOLTAGE(电压) | CV.PARA_CURRENT(电流) | CV.PARA_TEMPERATURE(温度), 可用"|"符号任意组合
+        Returns:
+            如果通信失败，返回None
+            如果指定读取的参数不存在，
+            如果成功，返回参数信息
+        """
+        assert feature_code < 256, "feature code should be [0-255] integer"
+        debug_output('====\nRead parameter of SS[%s], feature code %01X, para code %02X:' % (target_uid, feature_code, parameter_code))
+        acp_frame = [CV.ACP_FUNC_CODE_FRAZ_PARA, ord('R'), feature_code, parameter_code]
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=5, target_uid = target_uid)
+        if ret:
+            paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
+            paras = [item if item <32768 else item - 65536 for item in paras]
+
+            debug_output('FRAZ PARAMETERS of SS[%s], FEATURE CODE %01X' % (uid, feature_code))
+            i = 0
+            if parameter_code & CV.PARA_TEMPERATURE:
+                paras[i] = paras[i] * 1.0 / 100
+                debug_output('TEMPERATURE:%.2f' % paras[i])
+                i += 1
+
+            if parameter_code & CV.PARA_CURRENT:
+                paras[i] = paras[i] * 1.0 / 1000
+                debug_output('CURRENT:%.2f' % paras[i])
+                i += 1
+
+            if parameter_code & CV.PARA_VOLTAGE:
+                paras[i] = paras[i] * 1.0 / 100
+                debug_output('VOLTAGE:%.2f' % paras[i])
+
+            return tuple(paras)
+
+        else:
+            print 'uid [%s] read parameter fail' % target_uid
+
+    def fraz_ss_current_parameter_by_broadcast(self, feature_code, parameter_code):
+        """ 发布广播，冻结模块当前参数
+        Params:
+            feature_code: 参数冻结特征码，为当前冻结的参数值稍后读取时所用，[0-255]
+                            SS最多能保存4次参数冻结信息4，超过最大次数后，后面的冻结信息会覆盖最早的存储冻结信息
+            parameter_code: CV.PARA_VOLTAGE(电压) | CV.PARA_CURRENT(电流) | CV.PARA_TEMPERATURE(温度), 可用"|"符号任意组合
+        Returns:
+            广播使用无回复通信机制，因此只要数据帧被CV成功发出即返回（tran_id）表示成功, 而不确保所有SS都收到，因此保险做法是重复广播多次
+            发送失败返回None
+        """
+
+        assert feature_code < 256, "feature code should be [0-255] integer"
+
+        debug_output('====\nBroadcast to freeze all SS'' present parameters, feature code %01X, para code %02X:' % (feature_code,parameter_code))
+        acp_frame = [CV.ACP_FUNC_CODE_FRAZ_PARA, ord('F'), feature_code, parameter_code]
+        ret = self.acp_send(acp_body = acp_frame, idtp =  ACP_IDTP_DB, req = 0, domain_id = [self.domain_id_high8, self.domain_id_low8])
+        if ret is not None:
+            time.sleep(1);      #TODO: 具体的帧发送时间控制
+        return ret
+
+
+
+
+
 if '__main__' == __name__:
     cv = CV('com3')
 
     test_ss = ['570A004D0054','570A004F0026','5E1D0A098A71']
+    # test_ss = ['5E1D0A098A71']
 
     try:
         # ret = interface.single_response_transaction('0000012342')
@@ -920,50 +1009,65 @@ if '__main__' == __name__:
 
         # cv.phy_send(range(20), xmode = 0x41, scan=1)
         # cv.dll_send('ffffffffffff', range(10))
-        # cv.powermesh.ebc_broadcast(xmode = 0x80, rmode= 0x80, scan = 1, window = 5)
-        # time.sleep(1)
+        cv.powermesh.ebc_broadcast(xmode = 0x80, rmode= 0x80, scan = 1, window = 5)
+        time.sleep(5)
 
         # cv.app_send(asc_hex_str_to_dec_array('112233445566'))
         # time.sleep(2)
 
-        print '********************************************\nset acp addr test'
-        set_vid = 0x6601
+        # print '********************************************\nset acp addr test'
+        # set_vid = 0x6601
+        # for uid in test_ss:
+        #     cv.set_ss_acp_addr(uid,vid = set_vid,domain_id=cv.domain_id)
+        #     set_vid = set_vid + 1
+        #
+        # print '********************************************\nread acp addr test'
+        # for uid in test_ss:
+        #     apdu = cv.inquire_ss_acp_addr(uid)
+        #     if apdu:
+        #         print dec_array_to_asc_hex_str(apdu)
+
+        # print '********************************************\nread SS parameter by uid test'
+        # for uid in test_ss:
+        #     paras = cv.read_ss_current_parameter_by_uid(uid,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
+        #     if paras:
+        #         print paras
+        #
+        # print '********************************************\nread SS parameter by vid test'
+        # for i in range(1):
+        #     paras = cv.read_ss_current_parameter_by_vid(0x6603,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
+        #     if paras:
+        #         print paras
+        #
+        # print '********************************************\ncalib SS parameter test'
+        # for uid in test_ss:
+        #     try:
+        #         result = cv.calib_ss_voltage_by_uid(uid,0,15)     #不想破坏SS原有的已经校准的参数， 因此只送index=0的点
+        #         if result:
+        #             print dec_array_to_asc_hex_str(result)
+        #     except PvmException as pe:
+        #         print str(pe)
+        #
+        #
+        # print '********************************************\nsave and reset SS test'
+        # for uid in test_ss:
+        #     cv.save_ss_calib_by_uid(uid)
+        # cv.reset_ss_by_uid('5E1D0A098A71')
+
+        print '********************************************\nfraz SS params'
+
+        # for uid in test_ss:
+        #     result = cv.fraz_ss_current_parameter_by_uid(uid, 0x85, CV.PARA_TEMPERATURE)
+        #     if result:
+        #         print dec_array_to_asc_hex_str(result)
+        result = cv.fraz_ss_current_parameter_by_broadcast(0x89, CV.PARA_TEMPERATURE|CV.PARA_VOLTAGE|CV.PARA_CURRENT)
+
+        print '********************************************\nread fraz SS params'
         for uid in test_ss:
-            cv.set_ss_acp_addr(uid,vid = set_vid,domain_id=cv.domain_id)
-            set_vid = set_vid + 1
+            result = cv.read_ss_fraz_parameter_by_uid(uid, 0x89, CV.PARA_TEMPERATURE|CV.PARA_VOLTAGE|CV.PARA_CURRENT)
+            if result:
+                print dec_array_to_asc_hex_str(result)
 
-        print '********************************************\nread acp addr test'
-        for uid in test_ss:
-            apdu = cv.inquire_ss_acp_addr(uid)
-            if apdu:
-                print dec_array_to_asc_hex_str(apdu)
-
-        print '********************************************\nread SS parameter by uid test'
-        for uid in test_ss:
-            paras = cv.read_ss_current_parameter_by_uid(uid,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
-            if paras:
-                print paras
-
-        print '********************************************\nread SS parameter by vid test'
-        for i in range(1):
-            paras = cv.read_ss_current_parameter_by_vid(0x6603,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
-            if paras:
-                print paras
-
-        print '********************************************\ncalib SS parameter test'
-        for uid in test_ss:
-            try:
-                ret = cv.calib_ss_voltage_by_uid(uid,0,15)     #不想破坏SS原有的已经校准的参数， 因此只送index=0的点
-                if ret:
-                    print dec_array_to_asc_hex_str(ret)
-            except PvmException as pe:
-                print str(pe)
-
-
-        print '********************************************\nsave and reset SS test'
-        for uid in test_ss:
-            cv.save_ss_calib_by_uid(uid)
-        cv.reset_ss_by_uid('5E1D0A098A71')
 
 
     finally:
