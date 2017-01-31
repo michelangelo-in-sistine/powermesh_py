@@ -171,6 +171,8 @@ class Powermesh():
 
         if packet.dll_rcv_indication or packet.app_rcv_indication:
             self.plc_queue.put(packet)
+        else:
+            print "discard packet:", packet
 
     def ebc_broadcast(self, update_bid = True, xmode = 0x10, rmode = 0x10, scan = 1, mask = 0, window = 5):
         """

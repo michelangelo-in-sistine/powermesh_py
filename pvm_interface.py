@@ -71,6 +71,12 @@ class CV(object):
 
     ACP_FUNC_CODE_CALIB_PARA = 0x0C         # 模块校准
 
+    ACP_FUNC_CODE_NVR = 0x0E                # NVR相关
+    ACP_FUNC_CODE_NVR_ERAZ = 'E'            # 擦除NVR
+    ACP_FUNC_CODE_NVR_READ = 'R'            # 读NVR
+    ACP_FUNC_CODE_NVR_WRIT = 'W'            # 写NVR
+
+
     PARA_VOLTAGE = 0x01
     PARA_CURRENT = 0x02
     PARA_TEMPERATURE = 0x04
@@ -182,7 +188,7 @@ class CV(object):
                 else:
                     if rcv_bytes:
                         temp = self.ser.read(rcv_bytes)
-                        #sys.stdout.write(temp)
+                        # sys.stdout.write(temp)
                         # debug_output(temp)
                         rcv_data += temp # 整包取出并状态清零
                         rcv_bytes = 0
@@ -192,7 +198,7 @@ class CV(object):
                         if match_rslt:
                             for item in match_rslt:
                                 debug_output('<= <' + item + '>')
-                                if item[4:6] == '60' and hasattr(self,'powermesh'):
+                                if item[4:6] == '60' and hasattr(self,'powermesh'):     #判断如果是CV上传的PLC帧,进入plc处理
                                     ret_func_code, body = self.parse_return(item)
                                     self.powermesh.run_rcv_proc(body)
                                 else:
@@ -636,10 +642,12 @@ class CV(object):
                 powermesh_packet, time_remains = self.wait_a_plc_response(time_remains)
                 if powermesh_packet is not None:
                     ret = self.check_acp_return(acp_body, idtp, target_uid, domain_id, vid, tran_id, powermesh_packet)
-                    if ret:
+                    if ret is not None:     #positive confirm can be a empty packet
                         debug_output(dec_array_to_asc_hex_str(powermesh_packet.apdu))
                         debug_output('transaction time_remains :%.2f' % time_remains)
                         return ret
+                    else:
+                        print 'discard a plc response'
         else:
             debug_output('acp send Fail')
             return None
@@ -758,7 +766,7 @@ class CV(object):
             paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
             paras = [item if item <32768 else item - 65536 for item in paras]
 
-            debug_output('CURRENT PARAMETERS of SS[%s]' % uid)
+            debug_output('CURRENT PARAMETERS of SS[%s]' % target_uid)
             i = 0
             if parameter_code & CV.PARA_TEMPERATURE:
                 paras[i] = paras[i] * 1.0 / 100
@@ -796,7 +804,7 @@ class CV(object):
             paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
             paras = [item if item <32768 else item - 65536 for item in paras]
 
-            debug_output('CURRENT PARAMETERS of SS[%s]' % uid)
+            debug_output('CURRENT PARAMETERS of SS[%s]' % cv_uid)
             i = 0
             if parameter_code & CV.PARA_TEMPERATURE:
                 paras[i] = paras[i] * 1.0 / 100
@@ -880,7 +888,7 @@ class CV(object):
 
 
     def save_ss_calib_by_uid(self, target_uid):
-        """ 将校正的系数保存到NVR
+        """ 将校正的系数保存到NVR,
         """
         debug_output('====\nCalib SS[%s]' % target_uid)
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('S'), SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
@@ -889,6 +897,49 @@ class CV(object):
             debug_output('SS Module[%s] calib saved' % target_uid)
         else:
             debug_output('SS Module[%s] save calibration failed' % target_uid)
+
+
+    def read_nvr_data_by_uid(self, target_uid):
+        """ 指定UID, 读取其NVR当前信息
+            自动保存成文本文件
+        """
+        debug_output('====\nRead SS[%s] NVR' % target_uid)
+        acp_frame = [CV.ACP_FUNC_CODE_NVR, ord('R'), 0xFF]
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        if ret:
+            debug_output('SS Module[%s] NVR Data:' % target_uid)
+            print dec_array_to_asc_hex_str(ret)
+            with open('%s_config_%s.txt' % (target_uid,time.strftime('%Y%m%d-%H%M%S')) ,'w') as f:
+                f.write(dec_array_to_asc_hex_str(ret))
+            print 'nvr data saved'
+            return ret
+        else:
+            debug_output('SS Module[%s] NVR Read failed' % target_uid)
+
+
+    def write_nvr_data_by_uid(self, target_uid, nvr_data):
+        """ 指定uid, 将以hex文本形式提供的配置数据写入nvr
+        """
+        assert len(nvr_data) < 160, 'nvr_data length out of range'
+        data = asc_hex_str_to_dec_array(nvr_data)
+
+        debug_output('====\nErase SS[%s] NVR' % target_uid)
+        acp_frame = [CV.ACP_FUNC_CODE_NVR, ord('E')] +[SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        if ret is None:
+            debug_output('SS Module[%s] NVR Erase Fail')
+            return None
+        else:
+            debug_output('Erase OK')
+
+        debug_output('====\nWrite SS[%s] NVR' % target_uid)
+        acp_frame = [CV.ACP_FUNC_CODE_NVR, ord('W')] + data +[SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        if ret is not None:
+            debug_output('SS Module[%s] NVR Write Completed' % target_uid)
+            return 1
+        else:
+            debug_output('SS Module[%s] NVR Write failed' % target_uid)
 
 
     def reset_ss_by_uid(self, target_uid):
@@ -942,7 +993,7 @@ class CV(object):
             paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
             paras = [item if item <32768 else item - 65536 for item in paras]
 
-            debug_output('FRAZ PARAMETERS of SS[%s], FEATURE CODE %01X' % (uid, feature_code))
+            debug_output('FRAZ PARAMETERS of SS[%s], FEATURE CODE %01X' % (cv_uid, feature_code))
             i = 0
             if parameter_code & CV.PARA_TEMPERATURE:
                 paras[i] = paras[i] * 1.0 / 100
@@ -980,98 +1031,115 @@ class CV(object):
         acp_frame = [CV.ACP_FUNC_CODE_FRAZ_PARA, ord('F'), feature_code, parameter_code]
         ret = self.acp_send(acp_body = acp_frame, idtp =  ACP_IDTP_DB, req = 0, domain_id = [self.domain_id_high8, self.domain_id_low8])
         if ret is not None:
-            time.sleep(1);      #TODO: 具体的帧发送时间控制
+            time.sleep(1)      #TODO: 具体的帧发送时间控制
         return ret
 
 
-
-
-
 if '__main__' == __name__:
-    cv = CV('com3')
-
-    test_ss = ['570A004D0054','570A004F0026','5E1D0A098A71']
-    # test_ss = ['5E1D0A098A71']
+    cv = CV('COM3')
 
     try:
-        # ret = interface.single_response_transaction('0000012342')
-        # if ret is not None:
-        #     print ret
-        #
-        # ret = interface.multiple_response_transaction('0000012342', timeout = 2)
-        # print ret
+        # data = cv.read_nvr_data_by_uid('5E1D0A098A71')
+        # if data:
+        ret = cv.write_nvr_data_by_uid('570A004F0026', 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5AFE016600006E8A')
+        if ret :
+            cv.read_nvr_data_by_uid('570A004F0026')
 
-        uid = cv.read_uid()
-        print 'cv uid:', dec_array_to_asc_hex_str(uid)
-
-        # result = interface.diag('ffffffffffff',0x41,0x10)
-        # print result
-
-        # cv.phy_send(range(20), xmode = 0x41, scan=1)
-        # cv.dll_send('ffffffffffff', range(10))
-        cv.powermesh.ebc_broadcast(xmode = 0x80, rmode= 0x80, scan = 1, window = 5)
-        time.sleep(5)
-
-        # cv.app_send(asc_hex_str_to_dec_array('112233445566'))
-        # time.sleep(2)
-
-        # print '********************************************\nset acp addr test'
-        # set_vid = 0x6601
-        # for uid in test_ss:
-        #     cv.set_ss_acp_addr(uid,vid = set_vid,domain_id=cv.domain_id)
-        #     set_vid = set_vid + 1
-        #
-        # print '********************************************\nread acp addr test'
-        # for uid in test_ss:
-        #     apdu = cv.inquire_ss_acp_addr(uid)
-        #     if apdu:
-        #         print dec_array_to_asc_hex_str(apdu)
-
-        # print '********************************************\nread SS parameter by uid test'
-        # for uid in test_ss:
-        #     paras = cv.read_ss_current_parameter_by_uid(uid,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
-        #     if paras:
-        #         print paras
-        #
-        # print '********************************************\nread SS parameter by vid test'
-        # for i in range(1):
-        #     paras = cv.read_ss_current_parameter_by_vid(0x6603,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
-        #     if paras:
-        #         print paras
-        #
-        # print '********************************************\ncalib SS parameter test'
-        # for uid in test_ss:
-        #     try:
-        #         result = cv.calib_ss_voltage_by_uid(uid,0,15)     #不想破坏SS原有的已经校准的参数， 因此只送index=0的点
-        #         if result:
-        #             print dec_array_to_asc_hex_str(result)
-        #     except PvmException as pe:
-        #         print str(pe)
-        #
-        #
-        # print '********************************************\nsave and reset SS test'
-        # for uid in test_ss:
-        #     cv.save_ss_calib_by_uid(uid)
-        # cv.reset_ss_by_uid('5E1D0A098A71')
-
-        print '********************************************\nfraz SS params'
-
-        # for uid in test_ss:
-        #     result = cv.fraz_ss_current_parameter_by_uid(uid, 0x85, CV.PARA_TEMPERATURE)
-        #     if result:
-        #         print dec_array_to_asc_hex_str(result)
-        result = cv.fraz_ss_current_parameter_by_broadcast(0x89, CV.PARA_TEMPERATURE|CV.PARA_VOLTAGE|CV.PARA_CURRENT)
-
-        print '********************************************\nread fraz SS params'
-        for uid in test_ss:
-            result = cv.read_ss_fraz_parameter_by_uid(uid, 0x89, CV.PARA_TEMPERATURE|CV.PARA_VOLTAGE|CV.PARA_CURRENT)
-            if result:
-                print dec_array_to_asc_hex_str(result)
-
-
-
+    # except Exception as e:
+    #     print 'Exception:',e
     finally:
         cv.close()
         del cv
 
-        print "THE END"
+    print '-- End'
+
+
+
+# if '__main__' == __name__:
+#     cv = CV('com3')
+#
+#     test_ss = ['570A004D0054','570A004F0026','5E1D0A098A71']
+#     # test_ss = ['5E1D0A098A71']
+#
+#     try:
+#         # ret = interface.single_response_transaction('0000012342')
+#         # if ret is not None:
+#         #     print ret
+#         #
+#         # ret = interface.multiple_response_transaction('0000012342', timeout = 2)
+#         # print ret
+#
+#         cv_uid = cv.read_uid()
+#         print 'cv uid:', dec_array_to_asc_hex_str(cv_uid)
+#
+#         # result = interface.diag('ffffffffffff',0x41,0x10)
+#         # print result
+#
+#         # cv.phy_send(range(20), xmode = 0x41, scan=1)
+#         # cv.dll_send('ffffffffffff', range(10))
+#         cv.powermesh.ebc_broadcast(xmode = 0x80, rmode= 0x80, scan = 1, window = 5)
+#         time.sleep(5)
+#
+#         # cv.app_send(asc_hex_str_to_dec_array('112233445566'))
+#         # time.sleep(2)
+#
+#         # print '********************************************\nset acp addr test'
+#         # set_vid = 0x6601
+#         # for uid in test_ss:
+#         #     cv.set_ss_acp_addr(uid,vid = set_vid,domain_id=cv.domain_id)
+#         #     set_vid = set_vid + 1
+#         #
+#         # print '********************************************\nread acp addr test'
+#         # for uid in test_ss:
+#         #     apdu = cv.inquire_ss_acp_addr(uid)
+#         #     if apdu:
+#         #         print dec_array_to_asc_hex_str(apdu)
+#
+#         # print '********************************************\nread SS parameter by uid test'
+#         # for uid in test_ss:
+#         #     paras = cv.read_ss_current_parameter_by_uid(uid,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
+#         #     if paras:
+#         #         print paras
+#         #
+#         # print '********************************************\nread SS parameter by vid test'
+#         # for i in range(1):
+#         #     paras = cv.read_ss_current_parameter_by_vid(0x6603,CV.PARA_VOLTAGE|CV.PARA_CURRENT|CV.PARA_TEMPERATURE)
+#         #     if paras:
+#         #         print paras
+#         #
+#         # print '********************************************\ncalib SS parameter test'
+#         # for uid in test_ss:
+#         #     try:
+#         #         result = cv.calib_ss_voltage_by_uid(uid,0,15)     #不想破坏SS原有的已经校准的参数， 因此只送index=0的点
+#         #         if result:
+#         #             print dec_array_to_asc_hex_str(result)
+#         #     except PvmException as pe:
+#         #         print str(pe)
+#         #
+#         #
+#         # print '********************************************\nsave and reset SS test'
+#         # for uid in test_ss:
+#         #     cv.save_ss_calib_by_uid(uid)
+#         # cv.reset_ss_by_uid('5E1D0A098A71')
+#
+#         print '********************************************\nfraz SS params'
+#
+#         # for uid in test_ss:
+#         #     result = cv.fraz_ss_current_parameter_by_uid(uid, 0x85, CV.PARA_TEMPERATURE)
+#         #     if result:
+#         #         print dec_array_to_asc_hex_str(result)
+#         result = cv.fraz_ss_current_parameter_by_broadcast(0x89, CV.PARA_TEMPERATURE|CV.PARA_VOLTAGE|CV.PARA_CURRENT)
+#
+#         print '********************************************\nread fraz SS params'
+#         for cv_uid in test_ss:
+#             result = cv.read_ss_fraz_parameter_by_uid(cv_uid, 0x89, CV.PARA_TEMPERATURE|CV.PARA_VOLTAGE|CV.PARA_CURRENT)
+#             if result:
+#                 print dec_array_to_asc_hex_str(result)
+#
+#
+#
+#     finally:
+#         cv.close()
+#         del cv
+#
+#         print "THE END"

@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="BookmarkManager">
-    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="259" />
-    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="370" />
+    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="265" />
+    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="376" />
     <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="23" />
-    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="566" />
-    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="622" />
+    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="572" />
+    <bookmark url="file://$PROJECT_DIR$/pvm_interface.py" line="628" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="76f245ab-d6d0-4d7a-b672-cf4f9cb01dfc" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pvm_interface.py" afterPath="$PROJECT_DIR$/pvm_interface.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pvm_powermesh.py" afterPath="$PROJECT_DIR$/pvm_powermesh.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="powermesh_py.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -32,63 +34,22 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="pvm_interface.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="pvm_interface.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pvm_interface.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="196" column="58" selection-start="6441" selection-end="6441" vertical-scroll-proportion="-14.689655" vertical-offset="3799" max-vertical-offset="19875">
+            <state line="1048" column="30" selection-start="40751" selection-end="40751" vertical-scroll-proportion="0.71770334" vertical-offset="25750" max-vertical-offset="28750">
               <folding>
                 <element signature="e#161#203#0" expanded="true" />
-                <element signature="e#390#467#0" expanded="false" />
-                <element signature="e#504#669#1" expanded="false" />
-                <element signature="e#1270#1337#0" expanded="false" />
-                <element signature="e#1670#1749#1" expanded="false" />
-                <element signature="e#4742#4761#0" expanded="false" />
-                <element signature="e#4792#5008#0" expanded="false" />
-                <element signature="e#5040#5290#0" expanded="false" />
-                <element signature="e#7176#7266#0" expanded="false" />
-                <element signature="e#7313#7344#0" expanded="false" />
-                <element signature="e#7380#7438#0" expanded="false" />
-                <element signature="e#8072#9070#0" expanded="false" />
-                <element signature="e#8072#8334#1" expanded="false" />
-                <element signature="e#9135#9282#1" expanded="false" />
-                <element signature="e#9552#9913#0" expanded="false" />
-                <element signature="e#9552#9853#1" expanded="false" />
-                <element signature="e#11345#11709#1" expanded="false" />
-                <element signature="e#12381#12653#1" expanded="false" />
-                <element signature="e#12952#13229#0" expanded="false" />
-                <element signature="e#12952#13126#1" expanded="false" />
-                <element signature="e#13279#13650#0" expanded="false" />
-                <element signature="e#13279#13511#1" expanded="false" />
-                <element signature="e#13734#16831#0" expanded="false" />
-                <element signature="e#13734#14711#1" expanded="false" />
-                <element signature="e#16941#18033#0" expanded="false" />
-                <element signature="e#16941#17419#1" expanded="false" />
-                <element signature="e#18133#18496#1" expanded="false" />
-                <element signature="e#19710#19805#0" expanded="false" />
-                <element signature="e#19710#19744#1" expanded="false" />
-                <element signature="e#19856#20062#0" expanded="false" />
-                <element signature="e#20115#20195#0" expanded="false" />
-                <element signature="e#20253#20279#0" expanded="false" />
-                <element signature="e#20434#20815#1" expanded="false" />
-                <element signature="e#21877#22087#1" expanded="false" />
-                <element signature="e#23139#23276#1" expanded="false" />
-                <element signature="e#27059#27370#1" expanded="false" />
-                <element signature="e#28613#28903#1" expanded="false" />
-                <element signature="e#30203#30473#1" expanded="false" />
-                <element signature="e#31194#31464#1" expanded="false" />
-                <element signature="e#32193#32534#1" expanded="false" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="pvm_powermesh.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="pvm_powermesh.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pvm_powermesh.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="76" column="11" selection-start="2054" selection-end="2054" vertical-scroll-proportion="0.7337461" vertical-offset="1426" max-vertical-offset="5175">
-              <folding>
-                <element signature="e#50#74#0" expanded="true" />
-              </folding>
+            <state line="174" column="34" selection-start="5659" selection-end="5659" vertical-scroll-proportion="0.0" vertical-offset="3865" max-vertical-offset="5150">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -127,17 +88,19 @@
         <option value="$PROJECT_DIR$/pvm_cv.py" />
         <option value="$PROJECT_DIR$/pvm_protocol.py" />
         <option value="$PROJECT_DIR$/powermesh_spec.py" />
-        <option value="$PROJECT_DIR$/pvm_powermesh.py" />
         <option value="$PROJECT_DIR$/pvm_util.py" />
+        <option value="$PROJECT_DIR$/plot_test.py" />
+        <option value="$PROJECT_DIR$/../../../../python/util/pyresize.py" />
+        <option value="$PROJECT_DIR$/../../../../python/util/ss_test_procedure.py" />
+        <option value="$PROJECT_DIR$/ss_test_procedure.py" />
+        <option value="$PROJECT_DIR$/pvm_powermesh.py" />
         <option value="$PROJECT_DIR$/pvm_interface.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-8" />
-    <option name="y" value="-8" />
-    <option name="width" value="1936" />
-    <option name="height" value="1176" />
+    <option name="width" value="960" />
+    <option name="height" value="1170" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -171,14 +134,14 @@
     <OptionsSetting value="true" id="Update" />
     <OptionsSetting value="true" id="Status" />
     <OptionsSetting value="true" id="Edit" />
-    <ConfirmationsSetting value="0" id="Add" />
+    <ConfirmationsSetting value="1" id="Add" />
     <ConfirmationsSetting value="0" id="Remove" />
   </component>
   <component name="ProjectReloadState">
     <option name="STATE" value="0" />
   </component>
   <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1" splitterProportion="0.5">
+    <navigator proportions="" version="1" splitterProportion="0.5">
       <flattenPackages />
       <showMembers />
       <showModules />
@@ -189,36 +152,14 @@
       <autoscrollFromSource />
       <sortByType />
     </navigator>
-    <panes>
-      <pane id="Scope" />
-      <pane id="ProjectPane">
-        <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="powermesh_py" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="powermesh_py" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="cv_python" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-    </panes>
+    <panes />
   </component>
   <component name="PropertiesComponent">
     <property name="full.screen.before.presentation.mode" value="false" />
     <property name="options.splitter.main.proportions" value="0.3" />
     <property name="recentsLimit" value="5" />
     <property name="options.lastSelected" value="preferences.keymap" />
-    <property name="last_opened_file_path" value="C:/Python27" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="FullScreen" value="false" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
@@ -237,6 +178,7 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\unify_root\project\pv_mon\firmware\cv_python" />
       <recent name="E:\Documents\My Sync\Python\mac_python\project\pvmesh" />
     </key>
   </component>
@@ -258,24 +200,6 @@
       <RunnerSettings RunnerId="PyDebugRunner" />
       <RunnerSettings RunnerId="PythonRunner" />
       <ConfigurationWrapper RunnerId="PyDebugRunner" />
-      <ConfigurationWrapper RunnerId="PythonRunner" />
-      <method />
-    </configuration>
-    <configuration default="false" name="pvm_cv" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="powermesh_py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pvm_cv.py" />
-      <option name="PARAMETERS" value="" />
-      <RunnerSettings RunnerId="PythonRunner" />
       <ConfigurationWrapper RunnerId="PythonRunner" />
       <method />
     </configuration>
@@ -332,6 +256,26 @@
       <option name="SCRIPT_NAME" value="/Python Console" />
       <option name="PARAMETERS" value="" />
       <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="false" name="plot_test" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="powermesh_py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/plot_test.py" />
+      <option name="PARAMETERS" value="" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
       <ConfigurationWrapper RunnerId="PythonRunner" />
       <method />
     </configuration>
@@ -458,18 +402,18 @@
     </configuration>
     <list size="5">
       <item index="0" class="java.lang.String" itemvalue="Python.pvm_interface" />
-      <item index="1" class="java.lang.String" itemvalue="Python.pvm_cv" />
-      <item index="2" class="java.lang.String" itemvalue="Python.pvm_powermesh" />
-      <item index="3" class="java.lang.String" itemvalue="Python.pvm_util" />
-      <item index="4" class="java.lang.String" itemvalue="Python.Python Console" />
+      <item index="1" class="java.lang.String" itemvalue="Python.pvm_powermesh" />
+      <item index="2" class="java.lang.String" itemvalue="Python.pvm_util" />
+      <item index="3" class="java.lang.String" itemvalue="Python.Python Console" />
+      <item index="4" class="java.lang.String" itemvalue="Python.plot_test" />
     </list>
     <recent_temporary>
       <list size="5">
         <item index="0" class="java.lang.String" itemvalue="Python.pvm_interface" />
-        <item index="1" class="java.lang.String" itemvalue="Python.Python Console" />
+        <item index="1" class="java.lang.String" itemvalue="Python.pvm_powermesh" />
         <item index="2" class="java.lang.String" itemvalue="Python.pvm_util" />
-        <item index="3" class="java.lang.String" itemvalue="Python.pvm_powermesh" />
-        <item index="4" class="java.lang.String" itemvalue="Python.pvm_cv" />
+        <item index="3" class="java.lang.String" itemvalue="Python.plot_test" />
+        <item index="4" class="java.lang.String" itemvalue="Python.Python Console" />
       </list>
     </recent_temporary>
   </component>
@@ -521,19 +465,19 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1176" extended-state="6" />
+    <frame x="0" y="0" width="960" height="1170" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32996634" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33527133" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32884398" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3477842" sideWeight="0.3453125" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.123958334" sideWeight="0.6522158" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3498062" sideWeight="0.40466103" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.25211865" sideWeight="0.6501938" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.18697916" sideWeight="0.65317917" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3477842" sideWeight="0.6546875" order="2" side_tool="true" content_ui="tabs" x="5" y="611" width="1886" height="330" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="true" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3477842" sideWeight="0.6546875" order="2" side_tool="true" content_ui="tabs" x="5" y="611" width="1886" height="330" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32979852" sideWeight="0.6896942" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.28914505" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3477842" sideWeight="0.6546875" order="12" side_tool="true" content_ui="tabs" x="482" y="878" width="515" height="235" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3498062" sideWeight="0.595339" order="12" side_tool="true" content_ui="tabs" x="482" y="878" width="515" height="235" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32893288" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -587,88 +531,24 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="python-line">
           <url>file://$PROJECT_DIR$/pvm_powermesh.py</url>
-          <line>198</line>
+          <line>200</line>
           <option name="timeStamp" value="32" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$PROJECT_DIR$/plot_test.py</url>
+          <line>8</line>
+          <option name="timeStamp" value="63" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$PROJECT_DIR$/pvm_interface.py</url>
+          <line>643</line>
+          <option name="timeStamp" value="78" />
+        </line-breakpoint>
       </breakpoints>
-      <option name="time" value="58" />
+      <option name="time" value="79" />
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/pvm_powermesh.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="154" column="29" selection-start="5027" selection-end="5037" vertical-scroll-proportion="0.0" vertical-offset="3850" max-vertical-offset="5175">
-          <folding>
-            <element signature="e#50#74#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_util.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="76" column="16" selection-start="2035" selection-end="2035" vertical-scroll-proportion="0.0" vertical-offset="525" max-vertical-offset="7975">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_util.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="16" column="4" selection-start="576" selection-end="576" vertical-scroll-proportion="0.0" vertical-offset="304" max-vertical-offset="494" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_protocol.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="418" column="33" selection-start="15927" selection-end="15927" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="8284" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_interface.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="20" column="0" selection-start="368" selection-end="368" vertical-scroll-proportion="0.0" vertical-offset="380" max-vertical-offset="2128">
-          <folding>
-            <element signature="e#161#203#0" expanded="true" />
-            <element signature="e#390#467#0" expanded="false" />
-            <element signature="e#504#669#1" expanded="false" />
-            <element signature="e#1270#1337#0" expanded="false" />
-            <element signature="e#1670#1749#1" expanded="false" />
-            <element signature="e#4742#4761#0" expanded="false" />
-            <element signature="e#4792#5008#0" expanded="false" />
-            <element signature="e#5040#5290#0" expanded="false" />
-            <element signature="e#7176#7266#0" expanded="false" />
-            <element signature="e#7313#7344#0" expanded="false" />
-            <element signature="e#7380#7438#0" expanded="false" />
-            <element signature="e#8072#9070#0" expanded="false" />
-            <element signature="e#8072#8334#1" expanded="false" />
-            <element signature="e#9135#9282#1" expanded="false" />
-            <element signature="e#9552#9913#0" expanded="false" />
-            <element signature="e#9552#9853#1" expanded="false" />
-            <element signature="e#11345#11709#1" expanded="false" />
-            <element signature="e#12381#12653#1" expanded="false" />
-            <element signature="e#12952#13229#0" expanded="false" />
-            <element signature="e#12952#13126#1" expanded="false" />
-            <element signature="e#13279#13650#0" expanded="false" />
-            <element signature="e#13279#13511#1" expanded="false" />
-            <element signature="e#13734#16831#0" expanded="false" />
-            <element signature="e#13734#14711#1" expanded="false" />
-            <element signature="e#16941#18033#0" expanded="false" />
-            <element signature="e#16941#17419#1" expanded="false" />
-            <element signature="e#18133#18496#1" expanded="false" />
-            <element signature="e#19710#19805#0" expanded="false" />
-            <element signature="e#19710#19744#1" expanded="false" />
-            <element signature="e#19856#20062#0" expanded="false" />
-            <element signature="e#20115#20195#0" expanded="false" />
-            <element signature="e#20253#20279#0" expanded="false" />
-            <element signature="e#20434#20815#1" expanded="false" />
-            <element signature="e#21877#22087#1" expanded="false" />
-            <element signature="e#23139#23276#1" expanded="false" />
-            <element signature="e#27059#27370#1" expanded="false" />
-            <element signature="e#28613#28903#1" expanded="false" />
-            <element signature="e#30203#30473#1" expanded="false" />
-            <element signature="e#31194#31464#1" expanded="false" />
-            <element signature="e#32193#32534#1" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pvm_util.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="4" column="24" selection-start="182" selection-end="182" vertical-scroll-proportion="0.0" vertical-offset="76" max-vertical-offset="475" />
@@ -704,9 +584,23 @@
         <state line="128" column="12" selection-start="3953" selection-end="3953" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="10350" />
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/plot_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="1" column="0" selection-start="0" selection-end="367" vertical-scroll-proportion="0.024826216" vertical-offset="0" max-vertical-offset="1007">
+          <folding>
+            <element signature="e#20#38#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../python/util/pyresize.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="73" column="12" selection-start="2126" selection-end="2126" vertical-scroll-proportion="0.6206554" vertical-offset="1125" max-vertical-offset="2775" />
+      </provider>
+    </entry>
     <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="1142" column="0" selection-start="47510" selection-end="47510" vertical-scroll-proportion="0.0" vertical-offset="26465" max-vertical-offset="36800">
+        <state line="1142" column="0" selection-start="47510" selection-end="47510" vertical-scroll-proportion="0.0" vertical-offset="26689" max-vertical-offset="36800">
           <folding />
         </state>
       </provider>
@@ -718,59 +612,39 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pvm_interface.py">
+    <entry file="file://C:/Python27/Lib/threading.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="196" column="58" selection-start="6441" selection-end="6441" vertical-scroll-proportion="-14.689655" vertical-offset="3799" max-vertical-offset="19875">
-          <folding>
-            <element signature="e#161#203#0" expanded="true" />
-            <element signature="e#390#467#0" expanded="false" />
-            <element signature="e#504#669#1" expanded="false" />
-            <element signature="e#1270#1337#0" expanded="false" />
-            <element signature="e#1670#1749#1" expanded="false" />
-            <element signature="e#4742#4761#0" expanded="false" />
-            <element signature="e#4792#5008#0" expanded="false" />
-            <element signature="e#5040#5290#0" expanded="false" />
-            <element signature="e#7176#7266#0" expanded="false" />
-            <element signature="e#7313#7344#0" expanded="false" />
-            <element signature="e#7380#7438#0" expanded="false" />
-            <element signature="e#8072#9070#0" expanded="false" />
-            <element signature="e#8072#8334#1" expanded="false" />
-            <element signature="e#9135#9282#1" expanded="false" />
-            <element signature="e#9552#9913#0" expanded="false" />
-            <element signature="e#9552#9853#1" expanded="false" />
-            <element signature="e#11345#11709#1" expanded="false" />
-            <element signature="e#12381#12653#1" expanded="false" />
-            <element signature="e#12952#13229#0" expanded="false" />
-            <element signature="e#12952#13126#1" expanded="false" />
-            <element signature="e#13279#13650#0" expanded="false" />
-            <element signature="e#13279#13511#1" expanded="false" />
-            <element signature="e#13734#16831#0" expanded="false" />
-            <element signature="e#13734#14711#1" expanded="false" />
-            <element signature="e#16941#18033#0" expanded="false" />
-            <element signature="e#16941#17419#1" expanded="false" />
-            <element signature="e#18133#18496#1" expanded="false" />
-            <element signature="e#19710#19805#0" expanded="false" />
-            <element signature="e#19710#19744#1" expanded="false" />
-            <element signature="e#19856#20062#0" expanded="false" />
-            <element signature="e#20115#20195#0" expanded="false" />
-            <element signature="e#20253#20279#0" expanded="false" />
-            <element signature="e#20434#20815#1" expanded="false" />
-            <element signature="e#21877#22087#1" expanded="false" />
-            <element signature="e#23139#23276#1" expanded="false" />
-            <element signature="e#27059#27370#1" expanded="false" />
-            <element signature="e#28613#28903#1" expanded="false" />
-            <element signature="e#30203#30473#1" expanded="false" />
-            <element signature="e#31194#31464#1" expanded="false" />
-            <element signature="e#32193#32534#1" expanded="false" />
-          </folding>
+        <state line="762" column="0" selection-start="27090" selection-end="27090" vertical-scroll-proportion="0.33281735" vertical-offset="18835" max-vertical-offset="33425">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../python/util/ss_test_procedure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1007">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ss_test_procedure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="12" column="0" selection-start="156" selection-end="156" vertical-scroll-proportion="0.4643963" vertical-offset="0" max-vertical-offset="646">
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pvm_powermesh.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="76" column="11" selection-start="2054" selection-end="2054" vertical-scroll-proportion="0.7337461" vertical-offset="1426" max-vertical-offset="5175">
+        <state line="174" column="34" selection-start="5659" selection-end="5659" vertical-scroll-proportion="0.0" vertical-offset="3865" max-vertical-offset="5150">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pvm_interface.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="1048" column="30" selection-start="40751" selection-end="40751" vertical-scroll-proportion="0.71770334" vertical-offset="25750" max-vertical-offset="28750">
           <folding>
-            <element signature="e#50#74#0" expanded="true" />
+            <element signature="e#161#203#0" expanded="true" />
           </folding>
         </state>
       </provider>
