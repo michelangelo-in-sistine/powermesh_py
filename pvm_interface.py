@@ -13,7 +13,6 @@ from pvm_util import *
 from pvm_powermesh import *
 from Queue import Queue, Empty
 import re
-import sys
 
 
 class PvmFatalException(Exception):
