@@ -160,7 +160,7 @@ class CV(object):
             self.start_rcv_loop_thread()
 
         else:
-            debug_output("Port has been already opened")
+            pass
 
 
     def close(self):
@@ -331,7 +331,7 @@ class CV(object):
             raise PvmException(PvmException.EXCEPT_CODE_FORMAT_ERR, 'error cv uid address: ' + str(addr))
 
         if func_code & 0x80:
-            raise PvmException(func_code, 'WARNING!\nCV RETURN EXCEPTION')
+            raise PvmException(func_code, 'WARNING!\nCV RETURN EXCEPTION, CODE 0x%02X' % body[0])
 
         if func_code & 0x40:
             return func_code, body
@@ -831,6 +831,8 @@ class CV(object):
             uid: 要校正模块的uid， 可以使用全FF通配UID地址
             index: must be 0 or 1; when 0, calib the first point, when 1, calib the second point and calculate coefficients
             set_voltage: 告知SS当前的准确测量电压值, 浮点数, 保留两位小数
+        Returns:
+            寄存器值
         """
         assert index == 0 or index == 1, "index must be either 0 or 1"
         assert 0 <= set_voltage_value <= 80, "calib set voltage must be a valid value"
@@ -840,7 +842,7 @@ class CV(object):
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('U'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
         ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=4, target_uid = target_uid)
         if ret:
-            return ret
+            return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
             debug_output('SS Module[%s] voltage calibration failed' % target_uid)
 
@@ -860,7 +862,7 @@ class CV(object):
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('I'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
         ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
         if ret:
-            print ret
+            return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
             debug_output('SS Module[%s] current calibration failed' % target_uid)
 
@@ -881,7 +883,7 @@ class CV(object):
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('T'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
         ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
         if ret:
-            print ret
+            return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
             debug_output('SS Module[%s] temperature calibration failed' % target_uid)
 
@@ -894,6 +896,7 @@ class CV(object):
         ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
         if ret:
             debug_output('SS Module[%s] calib saved' % target_uid)
+            return ret
         else:
             debug_output('SS Module[%s] save calibration failed' % target_uid)
 
@@ -1040,9 +1043,10 @@ if '__main__' == __name__:
     try:
         # data = cv.read_nvr_data_by_uid('5E1D0A098A71')
         # if data:
-        ret = cv.write_nvr_data_by_uid('570A004F0026', 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5AFE016600006E8A')
-        if ret :
-            cv.read_nvr_data_by_uid('570A004F0026')
+        # ret = cv.write_nvr_data_by_uid('570A004F0026', 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5AFE016600006E8A')
+        # if ret :
+        #     cv.read_nvr_data_by_uid('570A004F0026')
+        ret = cv.read_ss_current_parameter_by_uid('5E1D0A098A71', 7)
 
     # except Exception as e:
     #     print 'Exception:',e

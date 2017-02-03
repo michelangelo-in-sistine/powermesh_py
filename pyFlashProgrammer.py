@@ -160,6 +160,16 @@ class FlashProgrammer(object):
 
         self.read_prog_type()           # 测试连通性
 
+
+    def close(self):
+        if self.ser.isOpen():
+            self.ser.close()
+
+
+    def open(self):
+        if not self.ser.isOpen():
+            self.ser.open()
+
     def gen_command_frame(self, command, body = [], bring_passwd = False):
         ''' 生成编程器控制命令
             编程器命令格式：
@@ -292,6 +302,7 @@ class FlashProgrammer(object):
         self.erase_full_main_array()
         time.sleep(0.1)                # 等待擦除完成
 
+        print 'Main Array Burning...'
         data_buffer, data_chips = readhexfile(hex_file_path)
         for [start, end] in data_chips:
             while start < end:
