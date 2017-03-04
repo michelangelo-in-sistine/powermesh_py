@@ -286,3 +286,4 @@ def main():
 
 if '__main__' == __name__:
     main()
+    '必应输入法最高!'

@@ -730,6 +730,32 @@ class CV(object):
             return ret
 
 
+    def inquire_ss_uid(self):
+        """ 当仅与一个SS连接时, 通过一次同配UID的acp地址查询, 获得物理层返回包的uid
+            注: 当存在多个SS时可能由于返回包的冲突碰撞导致查询失败
+        """
+        debug_output('====\nInquire UID of Unknown SS:')
+        acp_frame = [CV.ACP_FUNC_CODE_SET_ADDR] + asc_hex_str_to_dec_array('ffff ffff ffff ' + SECURITY_CODE_HEX_FORMAT)
+
+        tran_id = self.acp_send(acp_frame, ACP_IDTP_DB, 'FFFFFFFFFFFF', req = 1, domain_id = [0, 0], vid = 0)
+        time_remains = 2
+
+        if tran_id is not None:
+            while time_remains > 0:
+                powermesh_packet, time_remains = self.wait_a_plc_response(time_remains)
+                if powermesh_packet is not None:
+                    ret = self.check_acp_return(acp_frame, ACP_IDTP_DB, target_uid='FFFFFFFFFFFF', domain_id=[0,0], vid=0, tran_id=tran_id, powermesh_packet=powermesh_packet)
+                    if ret is not None:     #positive confirm can be a empty packet
+                        return dec_array_to_asc_hex_str(powermesh_packet.source_uid)
+                    else:
+                        print 'discard a plc response'
+        else:
+            debug_output('acp send Fail')
+            return None
+        debug_output('single acp transaction timeout')
+        return None         # time out
+
+
     def set_ss_acp_addr(self, target_uid, vid, domain_id = None, gid=0xffff):
         """ 通过UID指定一个SS, 设置vid, domain_id, gid
         """
@@ -1046,9 +1072,11 @@ if '__main__' == __name__:
         # ret = cv.write_nvr_data_by_uid('570A004F0026', 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5AFE016600006E8A')
         # if ret :
         #     cv.read_nvr_data_by_uid('570A004F0026')
-        ret = cv.read_ss_current_parameter_by_uid('5E1D0A098A71', 7)
-
-    # except Exception as e:
+        #ret = cv.read_ss_current_parameter_by_uid('5E1D0A098A71', 7)
+        ret = cv.inquire_ss_uid()
+        if ret is not None:
+            print ret
+        # except Exception as e:
     #     print 'Exception:',e
     finally:
         cv.close()
