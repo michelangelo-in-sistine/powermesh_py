@@ -94,7 +94,6 @@ class Powermesh():
             return False
 
 
-
     def dll_rcv_proc(self, packet):
         if packet.phy_rcv_valid:
             phpr = packet.ppdu[SEC_PHPR]

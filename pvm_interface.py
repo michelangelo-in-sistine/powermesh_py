@@ -1064,7 +1064,7 @@ class CV(object):
 
 
 if '__main__' == __name__:
-    cv = CV('COM3')
+    cv = CV('COM4')
 
     try:
         # data = cv.read_nvr_data_by_uid('5E1D0A098A71')
@@ -1073,11 +1073,13 @@ if '__main__' == __name__:
         # if ret :
         #     cv.read_nvr_data_by_uid('570A004F0026')
         #ret = cv.read_ss_current_parameter_by_uid('5E1D0A098A71', 7)
-        ret = cv.inquire_ss_uid()
-        if ret is not None:
-            print ret
+        # ret = cv.inquire_ss_uid()
+        # if ret is not None:
+        #     print ret
         # except Exception as e:
     #     print 'Exception:',e
+        cv.diag('5E1D0A098A71')
+        cv.diag('5E1D0A097B6D')
     finally:
         cv.close()
         del cv

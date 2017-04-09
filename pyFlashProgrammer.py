@@ -246,6 +246,11 @@ class FlashProgrammer(object):
                 print u'Î´Öª´íÎó£¬ret:%s' % dec_array_to_asc_hex_str(ret)
                 raise FlashProgrammerException('Unknown Error')
 
+    def clear_uart(self):
+        txt = self.ser.read(self.ser.inWaiting())
+        if len(txt):
+            print 'PROGRAMMER UART IS NOT EMPTY:', txt
+        return
 
     def read_prog_type(self):
         ''' ¶Á±à³ÌÆ÷ÐÍºÅ

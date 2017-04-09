@@ -22,11 +22,11 @@
 # 配置信息, 执行前先按实际情况修改成正确设置
 
 ## 烧录的hex文件路径
-HEX_IMAGE = r'e:\unify_root\project\pv_mon\firmware\powermesh_unify_2.0\device_ss\mainstream\project\powermesh_ss_ifp.hex'
-SS_VERSION = '2017.02.03'
+HEX_IMAGE = r'e:\unify_root\project\pv_mon\firmware\deliver\2017-03-05 修改了热敏B,修改了内部版本日期, python增加plc读uid\powermesh_ss.hex'
+SS_VERSION = '2017.03.05'
 
 # 连接CV的串口
-PORT_CV = 'com3'
+PORT_CV = 'com4'
 
 # 连接编程器的串口
 PORT_PROGRAMMER = 'com8'
@@ -257,21 +257,24 @@ def main():
         # time.sleep(0.5)
 
         # Step 1. 读取芯片UID，烧写程序
-        target_uid = fp.read_uid()
-        fp.full_main_array_burn(HEX_IMAGE)
-        time.sleep(0.5)                         # 模块复位时间
+        for i in xrange(4):
+            fp.clear_uart()
+            target_uid = fp.read_uid()
+            fp.full_main_array_burn(HEX_IMAGE)
+            time.sleep(0.5)                         # 模块复位时间
 
-        # Step 2. 测试通信性能
-        test_plc_performance(cv, target_uid)
-        time.sleep(0.1)
+            # Step 2. 测试通信性能
+            test_plc_performance(cv, target_uid)
+            time.sleep(0.1)
 
-        # Step 3. 校准模块测量
-        # calibrate(cv, ps, target_uid)
+            # Step 3. 校准模块测量
+            # calibrate(cv, ps, target_uid)
 
-        # Step 4. 打印标签
-        # print_tag(tp, target_uid, SS_VERSION)
+            # Step 4. 打印标签
+            # print_tag(tp, target_uid, SS_VERSION)
 
-        print u'DUT测试通过！'
+            print u'DUT测试通过！'
+            raw_input()
 
     except Exception as e:
         print "Exception Occurred:", type(e), str(e)
@@ -286,4 +289,3 @@ def main():
 
 if '__main__' == __name__:
     main()
-    '必应输入法最高!'
