@@ -528,6 +528,8 @@ class CV(object):
             prop: [DIAG ACK REQ_ACK EDP_PROTOCAL SCAN SRF 0 ACUPDATE]
             xmode: 发送模式
             rmode: 仅定义diag，ebc时有用
+        Returns:
+            正常发送: 返回CV
         """
 
         if type(target_uid) == str:
@@ -1064,7 +1066,14 @@ class CV(object):
 
 
 if '__main__' == __name__:
-    cv = CV('COM4')
+    # SE:
+    # 570A004D0054
+    # SS:
+    # 5E1D0A098A71
+    # 5E1D0A097B6D
+
+
+    cv = CV('COM3')
 
     try:
         # data = cv.read_nvr_data_by_uid('5E1D0A098A71')
@@ -1078,8 +1087,16 @@ if '__main__' == __name__:
         #     print ret
         # except Exception as e:
     #     print 'Exception:',e
-        cv.diag('5E1D0A098A71')
-        cv.diag('5E1D0A097B6D')
+    #     cv.diag('5E1D0A098A71')
+    #     cv.diag('5E1D0A097B6D')
+
+        # 测试EBC BroadCast
+        broad_id = 1
+        bsrf_set = cv.powermesh.ebc_broadcast(broad_id)
+        uid_set = cv.powermesh.ebc_identify(bsrf_set,broad_id)
+        for uid in uid_set:
+            print dec_array_to_asc_hex_str(uid)
+
     finally:
         cv.close()
         del cv

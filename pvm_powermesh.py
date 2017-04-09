@@ -5,7 +5,8 @@ import powermesh_rscodec
 from pvm_util import *
 from powermesh_spec import *
 from Queue import Queue, Empty
-
+from powermesh_timing import PowermeshTiming
+import time
 
 def encode_xmode(xmode, scan):
     """
@@ -34,6 +35,7 @@ def encode_xmode(xmode, scan):
             xcode += ((xmode & 0x0F) << 2)
     return xcode
 
+
 class PowermeshPacket():
     """ Powermesh Packet
     """
@@ -48,10 +50,11 @@ class PowermeshPacket():
         self.dll_rcv_valid = 0
         self.dll_rcv_indication = 0
         self.lpdu = []
+        self.source_uid = [0,0,0,0,0,0]
+        self.target_uid = [0,0,0,0,0,0]
 
         # APP Layer
         self.protocol = ''
-        self.source_uid = [0,0,0,0,0,0]
         self.apdu = []
         self.app_rcv_indication = 0
 
@@ -64,6 +67,16 @@ class PowermeshPacket():
         self.dll_rcv_indication = 0
 
 
+class Powermesh_Dll_Send_Content():
+    """
+        Powermesh DLL Send需要的信息类
+    """
+    def __init__(self, target_uid, xmode, rmode, prop, lsdu):
+        self.target_uid = target_uid
+        self.xmode = xmode
+        self.rmode = rmode
+        self.prop = prop
+        self.lsdu = lsdu
 
 class Powermesh():
     '''A powermesh frame object
@@ -71,13 +84,13 @@ class Powermesh():
 
 
     def __init__(self, interface):
-        """establish a powermesh obj by a frame of rcv_loop phy data or nothing('', for generate a phy frame)
+        """establish a powermesh process obj by a frame of rcv_loop phy data or nothing('', for generate a phy frame)
         Params:
             interface: CV object handle
         """
         self.interface = interface
         self.plc_queue = Queue()
-        self.broad_id = 1
+        self.powermesh_timing = PowermeshTiming()
         pass
 
 
@@ -103,11 +116,14 @@ class Powermesh():
                     packet.dll_rcv_indication = 1
                 else:
                     dlct = packet.ppdu[SEC_DLCT]
-
                     if self.check_uid(packet):
                         if dlct & BIT_DLCT_DIAG:
-                            #TODO:
-                            pass
+                            if dlct & BIT_DLCT_ACK:						#
+                                packet.dll_rcv_valid = BIT_DLL_VALID | BIT_DLL_DIAG | BIT_DLL_ACK | (dlct & BIT_DLL_IDX)
+                                packet.dll_rcv_indication = 1
+                            else:
+                                # diag cv not response, just abondon it
+                                pass
                         else:
                             if dlct & BIT_DLCT_ACK:
                                 packet.dll_rcv_valid = BIT_DLL_VALID | BIT_DLL_ACK | (dlct & BIT_DLL_IDX)
@@ -124,6 +140,8 @@ class Powermesh():
                                 packet.lpdu = packet.ppdu[1:-1]
                             else:
                                 packet.lpdu = packet.ppdu[SEC_LPDU:-2]
+                                packet.target_uid = packet.ppdu[SEC_DEST:SEC_DEST+6]
+                                packet.source_uid = packet.ppdu[SEC_SRC:SEC_SRC+6]
                     else:
                         debug_output('packet target uid mismatch!')
                         packet.abandon()
@@ -173,27 +191,95 @@ class Powermesh():
         else:
             print "discard packet:", packet
 
-    def ebc_broadcast(self, update_bid = True, xmode = 0x10, rmode = 0x10, scan = 1, mask = 0, window = 5):
+
+    def powermesh_dll_single_transaction(self, dll_send_obj, check_fun, time_out, max_try = 1):
+        """ dll层的收发控制
+        Params:
+            dll_send_obj: Powermesh_Dll_Send_Content类
+            check_fun: 用于检查返回的函数
+            timeout: 每一回合的定时时间
+            max_try: 最大重试次数
+        Returns:
+            returned powermesh packet
         """
-            broadcast
+        assert isinstance(dll_send_obj, Powermesh_Dll_Send_Content), "error class type"
+
+        if max_try > 0:
+            ret = self.interface.dll_send(dll_send_obj.target_uid, dll_send_obj.lsdu, dll_send_obj.prop, dll_send_obj.xmode, dll_send_obj.rmode, delay = 0.02)
+            time_remains = time_out
+            if ret is not None:
+                while time_remains > 0:
+                    ret_packet, time_remains = self.interface.wait_a_plc_response(time_remains)
+                    if ret_packet is not None:
+                        if check_fun(dll_send_obj, ret_packet):
+                            return ret_packet
+                        else:
+                            # if check_fun returns False, abondon current Packet
+                            print 'error response abandoned, packet PPDU: ', dec_array_to_asc_hex_str(ret_packet.ppdu)
+                            pass
+            # if 1. CV Send Error 2. PLC timeout
+            #    try once again by reentrance iteration
+            return self.powermesh_dll_single_transaction(dll_send_obj, check_fun, time_out, max_try - 1)
+        else:
+            return
+
+
+    def ebc_broadcast(self, broad_id, xmode = 0x80, rmode = 0x80, scan = 0, mask = 0, window = 5):
+        """ 发broadcast帧, 返回接收的bsrf
         """
 
-        if update_bid:
-            self.broad_id = (self.broad_id + 1) % 0x0F
-            if self.broad_id == 0:
-                self.broad_id = 1
-
-        lsdu = [EXP_EDP_EBC | (encode_xmode(rmode, scan) << 2) | EXP_EDP_EBC_NBF, self.broad_id<<4 | window, mask]
+        lsdu = [EXP_EDP_EBC | (encode_xmode(rmode, scan) << 2) | EXP_EDP_EBC_NBF, broad_id<<4 | window, mask]
         prop = BIT_DLL_SEND_PROP_EDP | (BIT_DLL_SEND_PROP_SCAN if scan else 0)
 
+        timeout = self.powermesh_timing.windows_delay_timing(4,rmode & 0x03,scan,window)
         self.interface.dll_send([0,0,0,0,0,0], lsdu, prop, xmode, rmode, delay = 0.02)
+        time.sleep(timeout)
+
+        bsrf_set = []
+        while not self.plc_queue.empty():
+            packet = self.plc_queue.get()
+            if packet.dll_rcv_valid & BIT_DLL_SRF:
+                bsrf_set.append(packet.ppdu[1:3])
+        return bsrf_set
+
+
+    def check_naf_return(self, dll_send_obj, ret_packet):
+        try:
+            if ret_packet.lpdu[SEC_LPDU_DLCT] & EXP_DLCT_EDP == EXP_DLCT_EDP:
+                if ret_packet.lpdu[SEC_LPDU_NBF_CONF] & 0xC0 == EXP_EDP_EBC:
+                    if ret_packet.lpdu[SEC_LPDU_NAF_CONF] & 0x03 == EXP_EDP_EBC_NAF:
+                        if dll_send_obj.lsdu[SEC_LSDU_NIF_ID:SEC_LSDU_NIF_ID+2] == ret_packet.lpdu[SEC_LPDU_NAF_ID:SEC_LPDU_NAF_ID+2]:
+                            # NIF_ID{7:4}:broad id, NIF_ID{3:0}+NIF_ID2: random id;
+                            return True
+        except Exception:
+            pass
+        return False
+
+
+    def ebc_identify(self, bsrf_set, broad_id, xmode = 0x80, rmode = 0x80, scan = 0):
+        """ 根据接收的bsrf id集合, 逐个identify得到uid
+            返回uid集合
+        """
+        uid_set = []
+        for bsrf_code in bsrf_set:
+            print 'identify bsrf code:',bsrf_code
+            lsdu = [EXP_EDP_EBC | (encode_xmode(rmode, scan) << 2) | EXP_EDP_EBC_NIF, broad_id<<4 | (bsrf_code[0] & 0x0F), (bsrf_code[1] & 0xFF)]
+            prop = BIT_DLL_SEND_PROP_EDP | (BIT_DLL_SEND_PROP_SCAN if scan else 0)
+            time_out = self.powermesh_timing.dll_ack_expiring_timing(len(lsdu) + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, rmode&0x03, scan)
+            dll_ebc_identify_obj = Powermesh_Dll_Send_Content([0,0,0,0,0,0],xmode,rmode,prop,lsdu)
+
+            naf_packet = self.powermesh_dll_single_transaction(dll_ebc_identify_obj, self.check_naf_return, time_out, 2)
+            if naf_packet is not None:
+                uid_set.append(naf_packet.source_uid)
+        return uid_set
+
 
 if __name__ == '__main__':
     from pvm_util import *
     pm = Powermesh(None)
     q = pm.get_plc_queue()
 
-    # cv_input = '00006000FC3D25E2BC8834'
+    # cv_input = '00006000FC25E2BC8834'
     # rcv_body = asc_hex_str_to_dec_array(cv_input)
     # pm.run_rcv_proc(rcv_body[3:-2])
 
