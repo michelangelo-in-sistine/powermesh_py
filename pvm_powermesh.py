@@ -91,6 +91,7 @@ class Powermesh():
         self.interface = interface
         self.plc_queue = Queue()
         self.powermesh_timing = PowermeshTiming()
+        self.last_broad_id = 0
         pass
 
 
@@ -262,7 +263,7 @@ class Powermesh():
         """
         uid_set = []
         for bsrf_code in bsrf_set:
-            print 'identify bsrf code:',bsrf_code
+            debug_output('identify bsrf code:%s' % (bsrf_code,))
             lsdu = [EXP_EDP_EBC | (encode_xmode(rmode, scan) << 2) | EXP_EDP_EBC_NIF, broad_id<<4 | (bsrf_code[0] & 0x0F), (bsrf_code[1] & 0xFF)]
             prop = BIT_DLL_SEND_PROP_EDP | (BIT_DLL_SEND_PROP_SCAN if scan else 0)
             time_out = self.powermesh_timing.dll_ack_expiring_timing(len(lsdu) + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, rmode&0x03, scan)
@@ -271,7 +272,15 @@ class Powermesh():
             naf_packet = self.powermesh_dll_single_transaction(dll_ebc_identify_obj, self.check_naf_return, time_out, 2)
             if naf_packet is not None:
                 uid_set.append(naf_packet.source_uid)
+                # send confirm packet
+                debug_output("confirm")
+                lsdu = [EXP_EDP_EBC | EXP_EDP_EBC_NCF, broad_id<<4 | (bsrf_code[0] & 0x0F), (bsrf_code[1] & 0xFF)]  #不需要回应
+                prop = BIT_DLL_SEND_PROP_EDP | (BIT_DLL_SEND_PROP_SCAN if scan else 0)
+                self.interface.dll_send(naf_packet.source_uid, lsdu, prop, xmode, rmode, delay = 0.02)
+                debug_output("wait %.2fs" % (self.powermesh_timing.dll_send_timing(len(lsdu),xmode&0x03,scan,0.02)))
+                time.sleep(self.powermesh_timing.dll_send_timing(len(lsdu),xmode&0x03,scan,0.02))
         return uid_set
+
 
 
 if __name__ == '__main__':

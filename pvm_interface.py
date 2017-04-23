@@ -13,7 +13,7 @@ from pvm_util import *
 from pvm_powermesh import *
 from Queue import Queue, Empty
 import re
-
+import random
 
 class PvmFatalException(Exception):
     """ The exceptions when raised the whole process should quit
@@ -1065,6 +1065,63 @@ class CV(object):
         return ret
 
 
+    def explore(self, target_nodes_num = 0, xmode = 0x80, rmode = 0x80, scan = 0):
+        """ 获得cv网络中的其他子网络节点uid
+        Params:
+            target_nodes_num: 获得目标节点的总数, 如不明确, 置0
+            xmode, rmode, scan 广播使用的下行, 上行, scan通信方式
+        """
+        # 用随机数方法生成一个新的broad_id, 确保不重复,不是0
+        while True:
+            broad_id = random.randint(1,15)
+            if broad_id != self.powermesh.last_broad_id:
+                self.powermesh.last_broad_id = broad_id
+                break
+
+        total_uid_set = []
+        empty_search = 0
+        turn = 0
+        while empty_search < 2:
+            bsrf_set = cv.powermesh.ebc_broadcast(broad_id, xmode = xmode, rmode = rmode, scan = scan)
+            new_uid_set = cv.powermesh.ebc_identify(bsrf_set, broad_id, xmode = xmode, rmode = rmode, scan = scan)
+
+            # 如果首轮就没有找到uid, 怀疑是broad_id重复, 换一个
+            if turn == 0 and len(new_uid_set) == 0:
+                while True:
+                    broad_id = random.randint(1,15)
+                    if broad_id != self.powermesh.last_broad_id:
+                        print 'change broad_id from %d to %d' % (self.powermesh.last_broad_id, broad_id)
+                        self.powermesh.last_broad_id = broad_id
+                        break
+
+            # check new uid
+            duplicated_uid = []
+            for uid in new_uid_set:
+                if uid in total_uid_set:
+                    debug_output('duplicated uid %s found' % (uid,))
+                    duplicated_uid.append(uid)  #不能直接从正在迭代的new_uid_set中删除,会遗漏元素
+
+            # remove duplicated uid
+            for uid in duplicated_uid:
+                new_uid_set.remove(uid)
+
+            debug_output('%d new uid acquired in turn %d' % (len(new_uid_set), turn,))
+            turn += 1
+            if len(new_uid_set) == 0:
+                empty_search += 1
+            else:
+                empty_search = 0
+                total_uid_set += new_uid_set
+                if target_nodes_num != 0 and len(total_uid_set) >= target_nodes_num:
+                    debug_output('max node num found in turn %d' % (turn,))
+                    break
+
+        print "Exlored Nodes UID:"
+        for uid in total_uid_set:
+            print dec_array_to_asc_hex_str(uid)
+
+        return total_uid_set
+
 if '__main__' == __name__:
     # SE:
     # 570A004D0054
@@ -1091,12 +1148,7 @@ if '__main__' == __name__:
     #     cv.diag('5E1D0A097B6D')
 
         # 测试EBC BroadCast
-        broad_id = 1
-        bsrf_set = cv.powermesh.ebc_broadcast(broad_id)
-        uid_set = cv.powermesh.ebc_identify(bsrf_set,broad_id)
-        for uid in uid_set:
-            print dec_array_to_asc_hex_str(uid)
-
+        cv.explore()
     finally:
         cv.close()
         del cv
