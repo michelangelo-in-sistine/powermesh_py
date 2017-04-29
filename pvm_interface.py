@@ -1106,7 +1106,6 @@ class CV(object):
                 new_uid_set.remove(uid)
 
             debug_output('%d new uid acquired in turn %d' % (len(new_uid_set), turn,))
-            turn += 1
             if len(new_uid_set) == 0:
                 empty_search += 1
             else:
@@ -1115,6 +1114,7 @@ class CV(object):
                 if target_nodes_num != 0 and len(total_uid_set) >= target_nodes_num:
                     debug_output('max node num found in turn %d' % (turn,))
                     break
+            turn += 1
 
         print "Exlored Nodes UID:"
         for uid in total_uid_set:
@@ -1148,7 +1148,7 @@ if '__main__' == __name__:
     #     cv.diag('5E1D0A097B6D')
 
         # ≤‚ ‘EBC BroadCast
-        cv.explore()
+        cv.explore(3)
     finally:
         cv.close()
         del cv
