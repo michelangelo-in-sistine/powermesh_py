@@ -92,6 +92,7 @@ class Powermesh():
         self.plc_queue = Queue()
         self.powermesh_timing = PowermeshTiming()
         self.last_broad_id = 0
+        self.psr_index = 0
         pass
 
 
@@ -175,6 +176,16 @@ class Powermesh():
             packet.protocol = 'PTP'
             packet.app_rcv_indication = 1
         return packet
+
+
+    # def psr_rcv_proc(self, packet):
+    #     if packet.dll_rcv_valid:
+    #         packet.source_uid = packet.lpdu[SEC_LPDU_SRC : SEC_LPDU_SRC+6]
+    #         packet.apdu = packet.lpdu[SEC_LPDU_PTP_APDU:]
+    #         packet.protocol = 'PSR'
+    #         packet.app_rcv_indication = 1
+    #     return packet
+
 
 
     def app_rcv_proc(self, packet):
@@ -282,17 +293,77 @@ class Powermesh():
         return uid_set
 
 
+    def check_psr_confirm(self, dll_send_obj, psr_confirm):
+        try:
+            if psr_confirm.lpdu[SEC_PSR_ID] == dll_send_obj.lsdu[SEC_LSDU_PSR_ID] and psr_confirm.lpdu[SEC_PSR_ID2] == dll_send_obj.lsdu[SEC_LSDU_PSR_ID2]:
+                if psr_confirm.lpdu[SEC_PSR_CONF] & BIT_PSR_CONF_UPLINK == BIT_PSR_CONF_UPLINK:
+                    return True
+        except Exception:
+            pass
+        return False
+
+
+    def psr_setup(self, pipe_id, pipe_script):
+        """ 根据pipe_script描述, 建立pipe
+            pipe_id: 12位无符号整数, (大于0, 小于0x1000, 最大0x0FFF)
+            pipe_script: pipe描述字符串, 格式如下:
+                '第0级pipe描述 第1级pipe描述 ... 第n-1级pipe描述', 其中每一级的pipe描述都为固定的16字节字符串, 内容为
+                    '第i级目标uid 第i级下行xmode 第i级上行rmode'
+                pipe_script可有空格, 但不能有其他字符
+                e.g. 一个1级pipe, 目标为5e1d0a050001, 下行为0x80, 上行为0x20, 则pipe描述为:
+                    '5e1d0a0500018020'
+                又如一个2级pipe, 第一级目标为5e1d03087752, 下行0x20, 上行0x40; 第二级目标5e1d04087739, 下行0x81, 上行0x20, 则pipe描述
+                '5e1d03087752 20 40 5e1d04087739 81 20'(为清晰计, pipe描述中间可有空格隔开, 但不能有其他字符)
+        """
+
+        assert type(pipe_id) == int and 0 < pipe_id < 0x1000, 'pipe_id must be a integer number between 0 and 0x1000'
+        assert type(pipe_script) == str, 'pipe_script must be str'
+        pipe_script = ''.join([c.upper() for c in pipe_script if c != ' '])
+        assert len(pipe_script) >= 16 and len(pipe_script) % 16 == 0, 'pipe_script error: %s' % pipe_script
+
+        def get_psr_index():
+            index = self.psr_index
+            self.psr_index = (index + 1) % 4
+            return index
+
+        target_uid = asc_hex_str_to_dec_array(pipe_script[:12])
+        xmode = int(pipe_script[12:14],16)
+        rmode = int(pipe_script[14:16],16)
+        stages = len(pipe_script)/16
+
+        nw_head = [CST_PSR_PROTOCOL | pipe_id >> 8, pipe_id % 256, BIT_PSR_CONF_SETUP | BIT_PSR_CONF_BIWAY | get_psr_index()]
+        lsdu = nw_head
+        lsdu.append((encode_xmode(xmode,0) << 4) | (encode_xmode(rmode,0)))  #第0阶pipe的数据体只有下行上行模式编码
+        for i in range(1,stages):
+            lsdu += asc_hex_str_to_dec_array(pipe_script[i*16 : i*16+12])
+            xmode = int(pipe_script[i*16+12 : i*16+14],16)
+            rmode = int(pipe_script[i*16+14 : i*16+16],16)
+            lsdu.append((encode_xmode(xmode,0) << 4) | (encode_xmode(rmode,0)))
+
+        prop = 0
+        psr_setup_dll_obj = Powermesh_Dll_Send_Content(target_uid, xmode, rmode, prop, lsdu)
+
+        time_out = self.powermesh_timing.psr_setup_transaction_timing(pipe_script)
+        psr_confirm_packet = self.powermesh_dll_single_transaction(psr_setup_dll_obj, self.check_psr_confirm, time_out, 2)
+        if psr_confirm_packet is not None:
+            return True
+        else:
+            return False
+
 
 if __name__ == '__main__':
     from pvm_util import *
     pm = Powermesh(None)
-    q = pm.get_plc_queue()
+    # q = pm.get_plc_queue()
 
     # cv_input = '00006000FC25E2BC8834'
     # rcv_body = asc_hex_str_to_dec_array(cv_input)
     # pm.run_rcv_proc(rcv_body[3:-2])
 
-    cv_input = '3118BDFFFFFFFFFFFF00570B0031004EF0000001020310A2'
-    rcv_body = asc_hex_str_to_dec_array(cv_input)
-    pm.run_rcv_proc(rcv_body)
-    print dec_array_to_asc_hex_str(q.get().lpdu)
+    # cv_input = '3118BDFFFFFFFFFFFF00570B0031004EF0000001020310A2'
+    # rcv_body = asc_hex_str_to_dec_array(cv_input)
+    # pm.run_rcv_proc(rcv_body)
+    # print dec_array_to_asc_hex_str(q.get().lpdu)
+
+    #pm.psr_setup(1,'5e1d03087752 20 40')
+    pm.psr_setup(1,'5e1d03087752 20 40 5e1d04087739 81 20')

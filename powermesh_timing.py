@@ -26,7 +26,7 @@ class PowermeshTiming():
         self.RCV_RESP_MARGIN_STICKS = 0.1
         self.EBC_WINDOW_MARGIN_STICKS = 0.010
 
-        self.PSR_STAGE_DELAY_STICKS = self.DLL_SEND_DELAY_STICKS + 15
+        self.PSR_STAGE_DELAY_STICKS = self.DLL_SEND_DELAY_STICKS + 0.015
         self.PSR_MARGIN_STICKS = 1
 
         self.CV_MARGIN_STICKS = 0.5
@@ -99,7 +99,31 @@ class PowermeshTiming():
         total_sticks += sticks * jumps
 
         return total_sticks + self.PSR_MARGIN_STICKS + resp_delay
-        
+
+    def psr_setup_transaction_timing(self, pipe_script):
+        """ pipe_script必须是已经去除了空格的pipe描述字符串
+            与C语言版本的差异: C语言版本不包括psr第一次发送的时间(因为从发送完毕开始计时), python版本包括这个时间
+        """
+        assert len(pipe_script) >= 16 and len(pipe_script) % 16 == 0, 'pipe_script error: %s' % pipe_script
+        stages = len(pipe_script)/16
+        timing = 0
+        pack_len = 18+3+1+7*(stages-1)
+        resp_len = powermesh_spec.LEN_TOTAL_OVERHEAD_BEYOND_LSDU + 3
+
+        # 下行总时间
+        for i in xrange(stages):
+            xmode = int(pipe_script[i*16+12:i*16+14],16)
+            pack_timing = self.phy_packet_timing(pack_len, xmode % 4 ,0)
+            timing += pack_timing + self.SOFTWARE_DELAY_STICKS + self.HARDWARE_DELAY_STICKS + self.ACK_DELAY_STICKS + self.PSR_STAGE_DELAY_STICKS
+            pack_len -= 7   # 下行包每次递减7字节
+
+        # 上行总时间
+        for i in xrange(stages):
+            rmode = int(pipe_script[i*16+14:i*16+16],16)
+            pack_timing = self.phy_packet_timing(resp_len, rmode % 4 ,0)
+            timing += pack_timing + self.SOFTWARE_DELAY_STICKS + self.HARDWARE_DELAY_STICKS + self.ACK_DELAY_STICKS + self.PSR_STAGE_DELAY_STICKS
+
+        return timing + self.PSR_MARGIN_STICKS
 
 if __name__=='__main__':
     tim = PowermeshTiming()
@@ -120,3 +144,5 @@ if __name__=='__main__':
     print 'flooding transaction:', tim.flooding_transaction_timing(52,52,'bpsk',scan = True,jumps=1,windows=16,resp_delay=1)
     
     print 'Timing Test Exit'
+
+    print tim.psr_setup_transaction_timing('5e1d0308775220405e1d040877398020')

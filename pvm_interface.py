@@ -1148,7 +1148,10 @@ if '__main__' == __name__:
     #     cv.diag('5E1D0A097B6D')
 
         # ≤‚ ‘EBC BroadCast
-        cv.explore(3)
+        # cv.explore(3)
+
+        # ≤‚ ‘psr setup
+        cv.powermesh.psr_setup(1,'5E1D0A098A71 80 80')
     finally:
         cv.close()
         del cv
