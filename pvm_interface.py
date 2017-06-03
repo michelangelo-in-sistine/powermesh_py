@@ -14,6 +14,8 @@ from pvm_powermesh import *
 from Queue import Queue, Empty
 import re
 import random
+import powermesh_timing
+import traceback
 
 class PvmFatalException(Exception):
     """ The exceptions when raised the whole process should quit
@@ -213,6 +215,11 @@ class CV(object):
             except PvmException as pe:
                 print "rcv loop thread PvmException!"
                 print str(pe)
+                break
+            except Exception as ee:
+                with open('rcv_loop_exception@%s.log' % time.strftime("%y%m%d_%H%M%S"), 'w') as fe:
+                    traceback.print_exc(file=fe)
+                    traceback.print_exc()
                 break
         debug_output('rcv loop thread quit')
 
@@ -627,7 +634,7 @@ class CV(object):
             return None
 
 
-    def single_acp_transaction(self, acp_body, idtp, time_remains, target_uid = 'ffffffffffff', domain_id = [0, 0], vid = 0):
+    def single_acp_transaction(self, acp_body, idtp, expected_acp_answer_bytes = 6, target_uid = 'ffffffffffff', domain_id = [0, 0], vid = 0):
         """ 通过plc通信，FPU借助CV实现与特定的一个SS使用acp协议“一问一答”.
             可以使用uid, 或使用vid寻址。前者适用于尚未设置vid时的地址配置，校准等工作。后者适合现场读参数
         Params:
@@ -638,6 +645,8 @@ class CV(object):
         assert idtp == ACP_IDTP_DB or idtp == ACP_IDTP_VC, 'idtp must be DB or VC, not %d' % (idtp,)
 
         tran_id = self.acp_send(acp_body, idtp, target_uid, req = 1, domain_id = domain_id, vid = vid)
+        time_remains = self.powermesh.powermesh_timing.ptp_single_acp_transaction_timing(len(acp_body), expected_acp_answer_bytes, self.xmode)
+        print 'time_remains = %f' % time_remains
         if tran_id is not None:
             while time_remains > 0:
                 powermesh_packet, time_remains = self.wait_a_plc_response(time_remains)
@@ -723,7 +732,7 @@ class CV(object):
         """
         debug_output('====\nInquire addr of SS[%s]:' % target_uid)
         acp_frame = [CV.ACP_FUNC_CODE_SET_ADDR] + asc_hex_str_to_dec_array('ffff ffff ffff ' + SECURITY_CODE_HEX_FORMAT)
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=2, target_uid=target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid=target_uid)
         if ret:
             debug_output('SS [%s]:\nDOMAIN:%04X\nVID:%04X\nGID:%04X' % (target_uid, \
                                                                         ret[0]*256 + ret[1],\
@@ -770,7 +779,7 @@ class CV(object):
         hex_gid = '%04X' % (gid,)
 
         acp_frame = [CV.ACP_FUNC_CODE_SET_ADDR] + asc_hex_str_to_dec_array(hex_domain_id + hex_vid + hex_gid + SECURITY_CODE_HEX_FORMAT)
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=2, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             return ret
         else:
@@ -788,7 +797,7 @@ class CV(object):
         """
         debug_output('====\nRead parameter of SS[%s], para code %02X:' % (target_uid,parameter_code))
         acp_frame = [CV.ACP_FUNC_CODE_READ_PARA, parameter_code]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=5, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
             paras = [item if item <32768 else item - 65536 for item in paras]
@@ -824,14 +833,14 @@ class CV(object):
             tuple of call-for parameters
             注意：返回参数的顺序是 （温度（如果有），电流（如果有），电压（如果有））
         """
-        debug_output('====\nRead parameter of SS[vid = 0x%04X], para code %02X:' % (target_vid, parameter_code))
+        debug_output('====\nRead parameter of SS[VID=0x%04X], para code %02X:' % (target_vid, parameter_code))
         acp_frame = [CV.ACP_FUNC_CODE_READ_PARA, parameter_code]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_VC, time_remains=4, domain_id = [self.domain_id_high8, self.domain_id_low8], vid = target_vid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_VC, domain_id = [self.domain_id_high8, self.domain_id_low8], vid = target_vid)
         if ret:
             paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
             paras = [item if item <32768 else item - 65536 for item in paras]
 
-            debug_output('CURRENT PARAMETERS of SS[%s]' % cv_uid)
+            debug_output('CURRENT PARAMETERS of SS[VID=0x%04X]' % target_vid)
             i = 0
             if parameter_code & CV.PARA_TEMPERATURE:
                 paras[i] = paras[i] * 1.0 / 100
@@ -868,7 +877,7 @@ class CV(object):
 
         value = int(set_voltage_value * 100)
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('U'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
@@ -888,7 +897,7 @@ class CV(object):
 
         value = int(set_current_value * 1000)
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('I'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
@@ -909,7 +918,7 @@ class CV(object):
 
         value = int(set_current_voltage * 100)
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('T'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
@@ -921,7 +930,7 @@ class CV(object):
         """
         debug_output('====\nCalib SS[%s]' % target_uid)
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('S'), SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             debug_output('SS Module[%s] calib saved' % target_uid)
             return ret
@@ -935,7 +944,7 @@ class CV(object):
         """
         debug_output('====\nRead SS[%s] NVR' % target_uid)
         acp_frame = [CV.ACP_FUNC_CODE_NVR, ord('R'), 0xFF]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, expected_acp_answer_bytes=64, target_uid = target_uid)
         if ret:
             debug_output('SS Module[%s] NVR Data:' % target_uid)
             print dec_array_to_asc_hex_str(ret)
@@ -955,7 +964,7 @@ class CV(object):
 
         debug_output('====\nErase SS[%s] NVR' % target_uid)
         acp_frame = [CV.ACP_FUNC_CODE_NVR, ord('E')] +[SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret is None:
             debug_output('SS Module[%s] NVR Erase Fail')
             return None
@@ -964,7 +973,7 @@ class CV(object):
 
         debug_output('====\nWrite SS[%s] NVR' % target_uid)
         acp_frame = [CV.ACP_FUNC_CODE_NVR, ord('W')] + data +[SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret is not None:
             debug_output('SS Module[%s] NVR Write Completed' % target_uid)
             return 1
@@ -977,7 +986,7 @@ class CV(object):
         """
         debug_output('====\nCalib SS[%s]' % target_uid)
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('R'), SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains = 4, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             debug_output('SS Module[%s] calib reset' % target_uid)
         else:
@@ -999,7 +1008,7 @@ class CV(object):
 
         debug_output('====\nFreeze parameter of SS[%s], feature code %01X, para code %02X:' % (target_uid,feature_code,parameter_code))
         acp_frame = [CV.ACP_FUNC_CODE_FRAZ_PARA, ord('F'), feature_code, parameter_code]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=5, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         print ret
 
 
@@ -1018,7 +1027,7 @@ class CV(object):
         assert feature_code < 256, "feature code should be [0-255] integer"
         debug_output('====\nRead parameter of SS[%s], feature code %01X, para code %02X:' % (target_uid, feature_code, parameter_code))
         acp_frame = [CV.ACP_FUNC_CODE_FRAZ_PARA, ord('R'), feature_code, parameter_code]
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, time_remains=5, target_uid = target_uid)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
             paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
             paras = [item if item <32768 else item - 65536 for item in paras]
@@ -1133,12 +1142,25 @@ if '__main__' == __name__:
     cv = CV('COM3')
 
     try:
+        # 测试定时时间
+        # cv.set_xmode(0x80)
+        # vid = 0x0011
+        # print cv.set_ss_acp_addr('5E1D0A098A71', vid)
+        # print cv.inquire_ss_acp_addr('5E1D0A098A71')
+        # print cv.read_ss_current_parameter_by_uid('5E1D0A098A71')
+        # print cv.read_ss_current_parameter_by_vid(vid)
+        # print cv.read_nvr_data_by_uid('5E1D0A098A71')
+        # print cv.calib_ss_voltage_by_uid('5E1D0A098A71',0,15)
+
+
+
         # data = cv.read_nvr_data_by_uid('5E1D0A098A71')
         # if data:
         # ret = cv.write_nvr_data_by_uid('570A004F0026', 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5AFE016600006E8A')
         # if ret :
         #     cv.read_nvr_data_by_uid('570A004F0026')
-        #ret = cv.read_ss_current_parameter_by_uid('5E1D0A098A71', 7)
+        # cv.set_xmode(0x81)
+        # ret = cv.read_ss_current_parameter_by_uid('5E1D0A098A71', 7)
         # ret = cv.inquire_ss_uid()
         # if ret is not None:
         #     print ret
@@ -1152,6 +1174,11 @@ if '__main__' == __name__:
 
         # 测试psr setup
         cv.powermesh.psr_setup(1,'5E1D0A098A71 80 80')
+    except Exception as e:
+        with open('cv_main_exception@%s.log' % time.strftime("%y%m%d_%H%M%S"), 'w') as fe:
+            traceback.print_exc(file=fe)
+            traceback.print_exc()
+        print 'exception happened, quit'
     finally:
         cv.close()
         del cv

@@ -30,6 +30,7 @@ class PowermeshTiming():
         self.PSR_MARGIN_STICKS = 1
 
         self.CV_MARGIN_STICKS = 0.5
+        self.PTP_MARGIN_STICKS = 1
     
     def basic_bit_timing(self, rate):
         if rate == 'bpsk' or rate == 0:
@@ -124,6 +125,14 @@ class PowermeshTiming():
             timing += pack_timing + self.SOFTWARE_DELAY_STICKS + self.HARDWARE_DELAY_STICKS + self.ACK_DELAY_STICKS + self.PSR_STAGE_DELAY_STICKS
 
         return timing + self.PSR_MARGIN_STICKS
+
+
+    def ptp_single_acp_transaction_timing(self, acp_frame_bytes, expect_acp_return_bytes, xmode = 0x80):
+        """ 网络层选择ptp协议
+        """
+        down_timing = self.phy_packet_timing(acp_frame_bytes + powermesh_spec.SEC_ACP_VC_BODY + powermesh_spec.LEN_TOTAL_OVERHEAD_BEYOND_LSDU + powermesh_spec.LEN_PTP_NPCI + powermesh_spec.LEN_MPCI, xmode & 0x03)
+        up_timing = self.phy_packet_timing(expect_acp_return_bytes + powermesh_spec.SEC_ACP_VC_BODY + powermesh_spec.LEN_TOTAL_OVERHEAD_BEYOND_LSDU + powermesh_spec.LEN_PTP_NPCI + powermesh_spec.LEN_MPCI, xmode & 0x03)
+        return down_timing + up_timing + self.PTP_MARGIN_STICKS
 
 if __name__=='__main__':
     tim = PowermeshTiming()

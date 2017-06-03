@@ -53,10 +53,22 @@ class PowermeshPacket():
         self.source_uid = [0,0,0,0,0,0]
         self.target_uid = [0,0,0,0,0,0]
 
+        # NW Protocol
+        self.nw_protocol = ''
+        self.nw_rcv_valid = 0
+        self.nw_rcv_indication = 0      # 接收对象是nw层
+        self.npci = []
+        self.nsdu = []
+        self.pipe_id = 0
+        self.psr_conf = 0
+
+        # Mgnt Layer
+        self.mgnt_rcv_indication = 0    # 接收对象是mgnt层
+        self.mpdu = []
+
         # APP Layer
-        self.protocol = ''
-        self.apdu = []
         self.app_rcv_indication = 0
+        self.apdu = []
 
 
     def abandon(self):
@@ -64,7 +76,11 @@ class PowermeshPacket():
         """
         self.phy_rcv_valid = 0
         self.dll_rcv_valid = 0
+        self.nw_rcv_valid = 0
         self.dll_rcv_indication = 0
+        self.nw_rcv_indication = 0
+        self.mgnt_rcv_indication = 0
+        self.app_rcv_indication = 0
 
 
 class Powermesh_Dll_Send_Content():
@@ -158,9 +174,9 @@ class Powermesh():
                 nw_protocol_code = packet.lpdu[SEC_LPDU_PSR_ID] & 0xF0
                 if nw_protocol_code == CST_PTP_PROTOCOL:
                     packet = self.ptp_rcv_proc(packet)
-                # elif nw_protocol_code == CST_PSR_PROTOCOL:
-                #     ##TODO: psr proc
-                #     pass
+                elif nw_protocol_code == CST_PSR_PROTOCOL:
+                    packet = self.psr_rcv_proc(packet)
+                    pass
                 # elif nw_protocol_code == CST_DST_PROTOCOL:
                 #     ##TODO: psr proc
                 #     pass
@@ -171,34 +187,48 @@ class Powermesh():
 
     def ptp_rcv_proc(self, packet):
         if packet.dll_rcv_valid:
-            packet.source_uid = packet.lpdu[SEC_LPDU_SRC : SEC_LPDU_SRC+6]
-            packet.apdu = packet.lpdu[SEC_LPDU_PTP_APDU:]
-            packet.protocol = 'PTP'
-            packet.app_rcv_indication = 1
+            packet.nw_protocol = 'PTP'
+            packet.nw_rcv_valid = 1
+            packet.npci = packet.lpdu[SEC_LPDU_PTP_NPDU : SEC_LPDU_PTP_NPDU + LEN_PTP_NPCI]
+            packet.nsdu = packet.lpdu[SEC_LPDU_PTP_NSDU : ]
         return packet
 
 
-    # def psr_rcv_proc(self, packet):
-    #     if packet.dll_rcv_valid:
-    #         packet.source_uid = packet.lpdu[SEC_LPDU_SRC : SEC_LPDU_SRC+6]
-    #         packet.apdu = packet.lpdu[SEC_LPDU_PTP_APDU:]
-    #         packet.protocol = 'PSR'
-    #         packet.app_rcv_indication = 1
-    #     return packet
+    def psr_rcv_proc(self, packet):
+        if packet.dll_rcv_valid:
+            if packet.lpdu[SEC_LPDU_PSR_ID] & 0xF0 == CST_PSR_PROTOCOL:
+                packet.pipe_id = ((packet.lpdu[SEC_LPDU_PSR_ID] & 0x0F)<<8) + packet.lpdu[SEC_LPDU_PSR_ID2]
+                packet.psr_conf = packet.lpdu[SEC_LPDU_PSR_CONF]
+                packet.npci = packet.lpdu[SEC_LPDU_PSR_NPDU : SEC_LPDU_PSR_NPDU + LEN_NPCI]
+                packet.nsdu = packet.lpdu[SEC_LPDU_PSR_NSDU : ]
+
+                packet.nw_protocol = 'PSR'
+                packet.nw_rcv_valid = 1
+                if packet.psr_conf & (BIT_PSR_CONF_SETUP | BIT_PSR_CONF_UPLINK | BIT_PSR_CONF_PATROL):
+                    packet.nw_rcv_indication = 1
+
+        return packet
 
 
-
-    def app_rcv_proc(self, packet):
-        pass
+    def mgnt_app_rcv_proc(self, packet):
+        if packet.nw_rcv_valid:
+            if len(packet.nsdu) > 0:
+                mpdu_head = packet.nsdu[0]
+                if mpdu_head & 0x80:
+                    packet.mgnt_rcv_indication = 1
+                    packet.mpdu = packet.nsdu
+                else:
+                    packet.app_rcv_indication = 1
+                    packet.apdu = packet.nsdu[SEC_NSDU_APDU:]
 
 
     def run_rcv_proc(self, rcv_body):
         packet = PowermeshPacket(rcv_body[0],rcv_body[1],rcv_body[2:])
         self.dll_rcv_proc(packet)
         self.nw_rcv_proc(packet)
-        self.app_rcv_proc(packet)
+        self.mgnt_app_rcv_proc(packet)
 
-        if packet.dll_rcv_indication or packet.app_rcv_indication:
+        if packet.dll_rcv_indication or packet.nw_rcv_indication or packet.mgnt_rcv_indication or packet.app_rcv_indication:
             self.plc_queue.put(packet)
         else:
             print "discard packet:", packet
@@ -243,7 +273,8 @@ class Powermesh():
         lsdu = [EXP_EDP_EBC | (encode_xmode(rmode, scan) << 2) | EXP_EDP_EBC_NBF, broad_id<<4 | window, mask]
         prop = BIT_DLL_SEND_PROP_EDP | (BIT_DLL_SEND_PROP_SCAN if scan else 0)
 
-        timeout = self.powermesh_timing.windows_delay_timing(4,rmode & 0x03,scan,window)
+        timeout = self.powermesh_timing.phy_packet_timing(len(lsdu) + LEN_TOTAL_OVERHEAD_BEYOND_LSDU , xmode & 0x03, scan) + \
+                  self.powermesh_timing.windows_delay_timing(4,rmode & 0x03,scan,window)
         self.interface.dll_send([0,0,0,0,0,0], lsdu, prop, xmode, rmode, delay = 0.02)
         time.sleep(timeout)
 
@@ -277,7 +308,8 @@ class Powermesh():
             debug_output('identify bsrf code:%s' % (bsrf_code,))
             lsdu = [EXP_EDP_EBC | (encode_xmode(rmode, scan) << 2) | EXP_EDP_EBC_NIF, broad_id<<4 | (bsrf_code[0] & 0x0F), (bsrf_code[1] & 0xFF)]
             prop = BIT_DLL_SEND_PROP_EDP | (BIT_DLL_SEND_PROP_SCAN if scan else 0)
-            time_out = self.powermesh_timing.dll_ack_expiring_timing(len(lsdu) + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, rmode&0x03, scan)
+            time_out = self.powermesh_timing.dll_ack_expiring_timing(len(lsdu) + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, xmode&0x03, scan)\
+                + self.powermesh_timing.dll_ack_expiring_timing(len(lsdu) + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, rmode&0x03, scan)
             dll_ebc_identify_obj = Powermesh_Dll_Send_Content([0,0,0,0,0,0],xmode,rmode,prop,lsdu)
 
             naf_packet = self.powermesh_dll_single_transaction(dll_ebc_identify_obj, self.check_naf_return, time_out, 2)
@@ -295,10 +327,11 @@ class Powermesh():
 
     def check_psr_confirm(self, dll_send_obj, psr_confirm):
         try:
-            if psr_confirm.lpdu[SEC_PSR_ID] == dll_send_obj.lsdu[SEC_LSDU_PSR_ID] and psr_confirm.lpdu[SEC_PSR_ID2] == dll_send_obj.lsdu[SEC_LSDU_PSR_ID2]:
-                if psr_confirm.lpdu[SEC_PSR_CONF] & BIT_PSR_CONF_UPLINK == BIT_PSR_CONF_UPLINK:
+            if psr_confirm.lpdu[SEC_LPDU_PSR_ID] == dll_send_obj.lsdu[SEC_LSDU_PSR_ID] and psr_confirm.lpdu[SEC_LPDU_PSR_ID2] == dll_send_obj.lsdu[SEC_LSDU_PSR_ID2]:
+                if psr_confirm.lpdu[SEC_LPDU_PSR_CONF] & BIT_PSR_CONF_UPLINK == BIT_PSR_CONF_UPLINK:
                     return True
         except Exception:
+            print 'psr packet format error'
             pass
         return False
 
@@ -316,6 +349,7 @@ class Powermesh():
                 '5e1d03087752 20 40 5e1d04087739 81 20'(为清晰计, pipe描述中间可有空格隔开, 但不能有其他字符)
         """
 
+        print 'setup pipe 0x%04X' % pipe_id
         assert type(pipe_id) == int and 0 < pipe_id < 0x1000, 'pipe_id must be a integer number between 0 and 0x1000'
         assert type(pipe_script) == str, 'pipe_script must be str'
         pipe_script = ''.join([c.upper() for c in pipe_script if c != ' '])
@@ -346,9 +380,16 @@ class Powermesh():
         time_out = self.powermesh_timing.psr_setup_transaction_timing(pipe_script)
         psr_confirm_packet = self.powermesh_dll_single_transaction(psr_setup_dll_obj, self.check_psr_confirm, time_out, 2)
         if psr_confirm_packet is not None:
+            print psr_confirm_packet
             return True
         else:
             return False
+
+    def psr_ping(self, pipe_id):
+        nw_head = [CST_PSR_PROTOCOL | pipe_id >> 8, pipe_id % 256, BIT_PSR_CONF_BIWAY | get_psr_index()]
+        lsdu = nw_head
+        lsdu.append()  #第0阶pipe的数据体只有下行上行模式编码
+
 
 
 if __name__ == '__main__':
