@@ -208,6 +208,12 @@ class FlashProgrammer(object):
         frm += crc16(frm)
         return frm
 
+    def clear_uart(self):
+        txt = self.ser.read(self.ser.inWaiting())
+        if len(txt):
+            print 'FP COM PORT IS NOT EMPTY:',txt
+        return
+
     def command_transaction(self, command):
         ''' 串口命令控制
         Input：
@@ -215,6 +221,15 @@ class FlashProgrammer(object):
         Return:
             烧写器执行成功：返回传回内容
             执行失败：返回Exception
+
+            烧录器返回错误命令字:
+            0x10	CRC校验错误
+            0x20	不支持的命令字(OnlineLoader不能执行SystemLoader的命令, 或SystemLoader也不支持的错误命令字)
+            0x30	数据一致性信息错误(长度信息错误)
+            0x40	权限拒绝;
+            0x50	字节编程超时错误;
+            0x60	IIC ACK错误, 表示芯片未响应编程器命令, 可能是编程器与目标板连接线错误或芯片坏损
+
         '''
         str_command = [chr(n) for n in command]
         ret = None
@@ -227,7 +242,9 @@ class FlashProgrammer(object):
                     if ret[0] != 0x80:
                         if ret[3] != 0x10:      #编程器提示下行CRC错误，先重试，不立刻raise Exception
                             print u'编程器返回异常,代码0x%02X' % ret[3]
-                            raise FlashProgrammerException('Programmer Error Code 0x%02X' % ret[3])
+                            # raise FlashProgrammerException('Programmer Error Code 0x%02X' % ret[3])
+                            r = 'fail, Programmer Error Code 0x%02X' % ret[3]
+
                     else:
                         return ret[3:-2]
             else:
@@ -235,23 +252,21 @@ class FlashProgrammer(object):
         else:
             if ret is None:
                 print u'编程器无响应,检查(1)编程器是否上电? (2)连线是否断开? (3)编程器是否正确?'
-                raise FlashProgrammerException('Programmer No Response')
+                # raise FlashProgrammerException('Programmer No Response')
+                r = 'Programmer No Response, fail'
             elif [0xE2, 0xF0] != crc16(ret):
                 print u'编程器返回数据CRC校验失败, 检查（1）连线质量（2）编程器是否正确'
-                raise FlashProgrammerException('Uplink CRC Fail')
+                # raise FlashProgrammerException('Uplink CRC Fail')
+                r = 'Uplink CRC fail'
             elif ret[0] == 0xF0 and ret[3] == 0x10:
                 print u'编程器提示下行CRC校验失败, 检查连线是否接触不良'
-                raise FlashProgrammerException('Downlink CRC Fail')
+                # raise FlashProgrammerException('Downlink CRC Fail')
+                r = 'Downlink CRC fail'
             else:
                 print u'未知错误，ret:%s' % dec_array_to_asc_hex_str(ret)
-                raise FlashProgrammerException('Unknown Error')
-
-    def clear_uart(self):
-        txt = self.ser.read(self.ser.inWaiting())
-        if len(txt):
-            print 'PROGRAMMER UART IS NOT EMPTY:', txt
-        return
-
+                # raise FlashProgrammerException('Unknown Error')
+                r = 'Unknown Error, fail'
+        return r
     def read_prog_type(self):
         ''' 读编程器型号
             返回字节[编程器类型，固件版本，FIRM_MAJOR_VERSION， FIRM_MINOR_VERSION， VER_YEAR， VER_MONTH， VER_DAY]
@@ -315,11 +330,12 @@ class FlashProgrammer(object):
                     payload = data_buffer[start:end]
                 else:
                     payload = data_buffer[start: (start + self.max_payload_length)]
-                self.command_transaction(self.gen_command_frame(0x30, [int(start/256), start % 256, len(payload)%256] + payload, bring_passwd = True))
+                r = self.command_transaction(self.gen_command_frame(0x30, [int(start/256), start % 256, len(payload)%256] + payload, bring_passwd = True))
                 start = (start + self.max_payload_length)
 
         self.reset_target()
         print 'Main Array Burned, Cost %.2fs' % (time.clock()-start_time)
+        return r
 
 
 if '__main__' == __name__:

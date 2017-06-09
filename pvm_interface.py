@@ -361,15 +361,27 @@ class CV(object):
         """
         func_code = self.send_cv_a_frame(frame)
         while time_remains > 0:
-            ret_frame, time_remains = self.wait_a_cv_response(time_remains)
-            if ret_frame is not None:
-                ret_func_code, body = self.parse_return(ret_frame)
-                if func_code & 0x3F == ret_func_code & 0x3F:
-                    return body
-                else:
-                    debug_output('got a un-expected response')
-                    debug_output(dec_array_to_asc_hex_str(ret_frame))
-                    pass                # TBD proceed unexpected frame
+                ret_frame, time_remains = self.wait_a_cv_response(time_remains)
+                if ret_frame is not None:
+                    try:
+                        ret_func_code, body = self.parse_return(ret_frame)
+                        if func_code & 0x3F == ret_func_code & 0x3F:
+                            return body
+                        else:
+                            debug_output('got a un-expected response')
+                            debug_output(dec_array_to_asc_hex_str(ret_frame))
+                            pass                # TBD proceed unexpected frame
+
+                    ## 测试中有发现弱光时cv返回不正确导致pvm_exception程序退出, 经检查程序log怀疑是cv 串口buffer里有数据帧,
+                    ## 加入except处理, 使程序继续运行, 并将导致exception的cv返回帧保存成log文件
+                    except PvmException as e:
+                        debug_output('cv return expect: %s', str(e))
+                        debug_output(dec_array_to_asc_hex_str(ret_frame))
+                        with open('cv_return_exception_log_%s.txt' % (time.strftime('%Y%m%d-%H%M%S')) ,'w') as f:
+                            f.write(str(e))
+                            f.write('\n')
+                            f.write(dec_array_to_asc_hex_str(ret_frame))
+
         return None
 
 
@@ -495,6 +507,40 @@ class CV(object):
         except PvmException as pe:
             print str(pe)
 
+    def dec_result(self,result):
+      if result:
+                rate_map = {0x00:'BPSK',0x01:'DS15',0x02:'DS63'}
+                result = [item if item <128 else item - 256 for item in result]
+                down_result=[]
+                up_result=[]
+                if scan:
+                    for i in range(4):
+                        down_result.append([result[i*2], result[i*2+1]])
+                        up_result.append([result[i*2+8], result[i*2+9]])
+                else:
+                    p = 0
+                    for i in range(4):
+                        if xmode & (0x10<<i):
+                            down_result.append([result[p*2], result[p*2+1]])
+                            p += 1
+                        else:
+                            down_result.append(['NA', 'NA'])
+
+
+                    for i in range(4):
+                        if rmode & (0x10<<i):
+                            up_result.append([result[p*2], result[p*2+1]])
+                            p += 1
+                        else:
+                            up_result.append(['NA', 'NA'])
+
+                print 'DIAG RESULT:'
+                print 'TARGET UID:%s' % dec_array_to_asc_hex_str(target_uid)
+                print '-------------------------------------------------'
+                print '\t\tDOWNLINK(%s)\t\t\tUPLINK(%s)' % (rate_map[xmode&0x0F], rate_map[rmode&0x0F])
+                print '\t\tSS(dBuV)\tSNR(dB)\t\tSS(dBuV)\tSNR(dB)'
+                for i in range(4):
+                    print 'CH%d:\t%s\t\t\t%s\t\t\t%s\t\t\t%s' % (i,down_result[i][0],down_result[i][1],up_result[i][0],up_result[i][1])
 
     def phy_send(self, psdu, xmode=0x80, scan = False, srf = False, ac_update = False, delay = 0):
         """ 控制cv发送phy帧
@@ -726,21 +772,6 @@ class CV(object):
         # All parse
         return powermesh_packet.apdu[body_index + 1 : -1]
 
-
-    def inquire_ss_acp_addr(self, target_uid):
-        """ 通过UID指定一个SS, 查询其domain id， vid， gid地址
-        """
-        debug_output('====\nInquire addr of SS[%s]:' % target_uid)
-        acp_frame = [CV.ACP_FUNC_CODE_SET_ADDR] + asc_hex_str_to_dec_array('ffff ffff ffff ' + SECURITY_CODE_HEX_FORMAT)
-        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid=target_uid)
-        if ret:
-            debug_output('SS [%s]:\nDOMAIN:%04X\nVID:%04X\nGID:%04X' % (target_uid, \
-                                                                        ret[0]*256 + ret[1],\
-                                                                        ret[2]*256 + ret[3],\
-                                                                        ret[4]*256 + ret[5]))
-            return ret
-
-
     def inquire_ss_uid(self):
         """ 当仅与一个SS连接时, 通过一次同配UID的acp地址查询, 获得物理层返回包的uid
             注: 当存在多个SS时可能由于返回包的冲突碰撞导致查询失败
@@ -766,7 +797,18 @@ class CV(object):
         debug_output('single acp transaction timeout')
         return None         # time out
 
-
+    def inquire_ss_acp_addr(self, target_uid):
+        """ 通过UID指定一个SS, 查询其domain id， vid， gid地址
+        """
+        debug_output('====\nInquire addr of SS[%s]:' % target_uid)
+        acp_frame = [CV.ACP_FUNC_CODE_SET_ADDR] + asc_hex_str_to_dec_array('ffff ffff ffff ' + SECURITY_CODE_HEX_FORMAT)
+        ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid=target_uid)
+        if ret:
+            debug_output('SS [%s]:\nDOMAIN:%04X\nVID:%04X\nGID:%04X' % (target_uid, \
+                                                                        ret[0]*256 + ret[1],\
+                                                                        ret[2]*256 + ret[3],\
+                                                                        ret[4]*256 + ret[5]))
+            return ret
     def set_ss_acp_addr(self, target_uid, vid, domain_id = None, gid=0xffff):
         """ 通过UID指定一个SS, 设置vid, domain_id, gid
         """
@@ -879,9 +921,12 @@ class CV(object):
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('U'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
         ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
-            return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
+            # return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
+            return 'SS Module voltage calibration pass point '+str(index) #(ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
-            debug_output('SS Module[%s] voltage calibration failed' % target_uid)
+            # debug_output('SS Module[%s] voltage calibration failed' % target_uid)
+            return 'SS Module voltage calibration failed point '+str(index)
+
 
 
     def calib_ss_current_by_uid(self, target_uid, index, set_current_value):
@@ -899,9 +944,12 @@ class CV(object):
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('I'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
         ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
-            return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
+            #return (ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
+            return 'SS Module voltage calibration pass point '+str(index) #(ret[0]<<24) + (ret[1]<<16) + (ret[2]<<8) + ret[3]
         else:
-            debug_output('SS Module[%s] current calibration failed' % target_uid)
+            #debug_output('SS Module[%s] current calibration failed' % target_uid)
+            return 'SS Module voltage calibration failed point '+str(index)
+
 
 
     def calib_ss_temperature_by_uid(self, target_uid, index, set_current_voltage):
@@ -916,7 +964,7 @@ class CV(object):
         assert 0 <= set_current_voltage <= 6, "calib set value must be a valid value"
         debug_output('====\nCalib SS[%s]' % target_uid)
 
-        value = int(set_current_voltage * 100)
+        value = int(set_current_voltage * 1000)
         acp_frame = [CV.ACP_FUNC_CODE_CALIB_PARA, ord('T'), index, value>>8, value % 256, SECURITY_CODE_HIGH8, SECURITY_CODE_LOW8]
         ret = self.single_acp_transaction(acp_frame, ACP_IDTP_DB, target_uid = target_uid)
         if ret:
@@ -993,7 +1041,7 @@ class CV(object):
             debug_output('SS Module[%s] reset failed' % target_uid)
 
 
-    def fraz_ss_current_parameter_by_uid(self, target_uid, feature_code, parameter_code):
+    def fraz_ss_current_parameter_by_uid(self, target_uid, feature_code, parameter_code=0x07):
         """ 利用uid寻址，冻结模块当前参数
         Params:
             target_uid: 模块UId， 'FFFFFFFFFFFF'为通配UID地址
@@ -1012,7 +1060,7 @@ class CV(object):
         print ret
 
 
-    def read_ss_fraz_parameter_by_uid(self, target_uid, feature_code, parameter_code):
+    def read_ss_fraz_parameter_by_uid(self, target_uid, feature_code, parameter_code=0x07):
         """ 利用uid寻址，以feature_code为索引，读取模块已冻结参数. 如指定的参数不存在，则会出错
         Params:
             target_uid: 模块UId， 'FFFFFFFFFFFF'为通配UID地址
@@ -1032,7 +1080,8 @@ class CV(object):
             paras = [ret[2*i]*256+ret[2*i+1] for i in range(len(ret)/2)]
             paras = [item if item <32768 else item - 65536 for item in paras]
 
-            debug_output('FRAZ PARAMETERS of SS[%s], FEATURE CODE %01X' % (cv_uid, feature_code))
+            debug_output('FRAZ PARAMETERS of SS[%s], FEATURE CODE %01X,' % (self.cv_uid, feature_code))
+            debug_output(paras)
             i = 0
             if parameter_code & CV.PARA_TEMPERATURE:
                 paras[i] = paras[i] * 1.0 / 100
@@ -1068,7 +1117,8 @@ class CV(object):
 
         debug_output('====\nBroadcast to freeze all SS'' present parameters, feature code %01X, para code %02X:' % (feature_code,parameter_code))
         acp_frame = [CV.ACP_FUNC_CODE_FRAZ_PARA, ord('F'), feature_code, parameter_code]
-        ret = self.acp_send(acp_body = acp_frame, idtp =  ACP_IDTP_DB, req = 0, domain_id = [self.domain_id_high8, self.domain_id_low8])
+        ret = self.acp_send(acp_body = acp_frame, idtp =  ACP_IDTP_DB, req = 0, domain_id = [0xFF, 0xFF])   # TODO: 在所有模块配置domain_id和vid后, 要取消这里的通配domain_id
+        #ret = self.acp_send(acp_body = acp_frame, idtp =  ACP_IDTP_DB, req = 0, domain_id = [self.domain_id_high8, self.domain_id_low8])
         if ret is not None:
             time.sleep(1)      #TODO: 具体的帧发送时间控制
         return ret
@@ -1091,8 +1141,8 @@ class CV(object):
         empty_search = 0
         turn = 0
         while empty_search < 2:
-            bsrf_set = cv.powermesh.ebc_broadcast(broad_id, xmode = xmode, rmode = rmode, scan = scan)
-            new_uid_set = cv.powermesh.ebc_identify(bsrf_set, broad_id, xmode = xmode, rmode = rmode, scan = scan)
+            bsrf_set = self.powermesh.ebc_broadcast(broad_id, xmode = xmode, rmode = rmode, scan = scan)
+            new_uid_set = self.powermesh.ebc_identify(bsrf_set, broad_id, xmode = xmode, rmode = rmode, scan = scan)
 
             # 如果首轮就没有找到uid, 怀疑是broad_id重复, 换一个
             if turn == 0 and len(new_uid_set) == 0:
